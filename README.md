@@ -8,7 +8,7 @@ Lightning-fast keyboard shortcuts for Redmine. Navigate and operate with blazing
 - 🎯 Keyboard control for search results
 - 🚀 Fast page navigation
 - ⌨️ Vim-inspired key bindings
-- 💬 Reply button with keyboard shortcut (auto-assigns to last updater)
+- 💬 Reply keyboard shortcut (auto-assigns to last updater)
 - ⌨️ ⌘/Option + Enter to submit forms (compatible with auto-save drafts)
 - 🔄 Shift + Enter to toggle Edit/Preview tabs
 - 🌐 Multi-language support (Japanese, English, French)
@@ -108,10 +108,9 @@ Press `e` to open the issue edit page with the description field already in edit
 
 ### Reply to Issue
 
-On issue detail pages, press `r` or click the Reply button to:
+On issue detail pages, press `r` to:
 - Automatically assign the issue to the last person who updated it (or the author if no updates)
 - Open the notes field for quick response
-- Supports multiple languages (Japanese, French, English)
 
 ### Edit/Preview Toggle
 
@@ -141,7 +140,7 @@ window.KeyboardHelp.toggle();
 Redmine Blitz automatically detects your browser language and displays UI elements accordingly:
 
 - **Help overlay (`?` key)**: Displays keyboard shortcuts in your language
-- **Reply button**: Shows as "返信" (Japanese), "Reply" (English), or "Répondre" (French)
+
 - Supported languages: Japanese (ja), English (en), French (fr)
 - Falls back to English for unsupported languages
 

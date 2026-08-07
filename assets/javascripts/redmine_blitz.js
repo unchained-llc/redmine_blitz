@@ -22,9 +22,6 @@
     /^\/issues\/\d+$/.test(window.location.pathname);
   const isSearchResultPage = () => document.getElementById('search-results');
 
-  if (isIssueDetailPage()) {
-    document.documentElement.classList.add('redmine-blitz-reply-loading');
-  }
 
   const style = document.createElement('style');
   style.textContent = `
@@ -44,9 +41,6 @@
       vertical-align: middle;
     }
     #search-results dt { position: relative; }
-    html.redmine-blitz-reply-loading #content > .contextual {
-      visibility: hidden;
-    }
   `;
   document.head.appendChild(style);
 
@@ -97,27 +91,13 @@
     }
   }
 
-  function setupReplyButton() {
+  function setupReplyShortcut() {
     if (!isIssueDetailPage() && !document.getElementById('issue_notes')) return;
 
     const editButton = document.querySelector('#content > .contextual a.icon-edit');
     if (!editButton) return;
 
     const beforeAssignedTo = $('#issue_assigned_to_id').val();
-
-    const userLanguage = navigator.language || navigator.userLanguage;
-    let replyText;
-    if (userLanguage.startsWith('ja')) replyText = '返信';
-    else if (userLanguage.startsWith('fr')) replyText = 'Répondre';
-    else replyText = 'Reply';
-
-    const replyButton = $('<a>')
-      .addClass('icon icon-issue-note btn btn-sm btn-outline-dark')
-      .text(replyText)
-      .attr('href', editButton.getAttribute('href'))
-      .attr('id', 'vc-reply-button');
-
-    $(editButton).after(replyButton);
 
     function doReply() {
       let replyTo;
@@ -138,10 +118,6 @@
       }
     }
 
-    replyButton.on('click', function() {
-      doReply();
-      return false;
-    });
 
     $(editButton).on('click', function() {
       $('#issue_assigned_to_id').val(beforeAssignedTo);
@@ -151,12 +127,8 @@
   }
 
   $(document).ready(function() {
-    try {
-      if (document.querySelector('#content > .contextual a.icon-edit')) {
-        setupReplyButton();
-      }
-    } finally {
-      document.documentElement.classList.remove('redmine-blitz-reply-loading');
+    if (document.querySelector('#content > .contextual a.icon-edit')) {
+      setupReplyShortcut();
     }
   });
 
