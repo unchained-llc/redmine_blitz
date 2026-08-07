@@ -22,6 +22,10 @@
     /^\/issues\/\d+$/.test(window.location.pathname);
   const isSearchResultPage = () => document.getElementById('search-results');
 
+  if (isIssueDetailPage()) {
+    document.documentElement.classList.add('redmine-blitz-reply-loading');
+  }
+
   const style = document.createElement('style');
   style.textContent = `
     tr.issue.kbd-selected {
@@ -40,6 +44,9 @@
       vertical-align: middle;
     }
     #search-results dt { position: relative; }
+    html.redmine-blitz-reply-loading #content > .contextual {
+      visibility: hidden;
+    }
   `;
   document.head.appendChild(style);
 
@@ -144,8 +151,12 @@
   }
 
   $(document).ready(function() {
-    if (document.querySelector('#content > .contextual a.icon-edit')) {
-      setupReplyButton();
+    try {
+      if (document.querySelector('#content > .contextual a.icon-edit')) {
+        setupReplyButton();
+      }
+    } finally {
+      document.documentElement.classList.remove('redmine-blitz-reply-loading');
     }
   });
 
