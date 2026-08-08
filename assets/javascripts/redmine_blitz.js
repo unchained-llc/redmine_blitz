@@ -277,6 +277,7 @@
         issueList: 'チケット一覧',
         activity: 'アクティビティ',
         wiki: 'Wiki',
+        sidebar: 'サイドバーを開く / 閉じる',
         scrollTop: '最上へスクロール',
         scrollBottom: '最下へスクロール',
         reply: '返信（チケット詳細ページ）',
@@ -303,6 +304,7 @@
         issueList: 'Go to issues list',
         activity: 'Go to activity',
         wiki: 'Go to Wiki',
+        sidebar: 'Open / close sidebar',
         scrollTop: 'Scroll to top',
         scrollBottom: 'Scroll to bottom',
         reply: 'Reply (issue detail page)',
@@ -329,6 +331,7 @@
         issueList: 'Liste des demandes',
         activity: 'Activité',
         wiki: 'Wiki',
+        sidebar: 'Ouvrir / fermer la barre latérale',
         scrollTop: 'Défiler vers le haut',
         scrollBottom: 'Défiler vers le bas',
         reply: 'Répondre (page détail)',
@@ -360,6 +363,7 @@
         <tr><td><b>i</b></td><td>${t.issueList}</td></tr>
         <tr><td><b>a</b></td><td>${t.activity}</td></tr>
         <tr><td><b>w</b></td><td>${t.wiki}</td></tr>
+        <tr><td><b>l</b></td><td>${t.sidebar}</td></tr>
         <tr><td><b>gg</b></td><td>${t.scrollTop}</td></tr>
         <tr><td><b>G</b></td><td>${t.scrollBottom}</td></tr>
 
@@ -451,6 +455,15 @@
         e.preventDefault();
         const btn = document.querySelector('a.icon.icon-copy, a.icon-copy, a[href$="/copy"]');
         if (btn) click(btn);
+        return;
+      }
+
+      if (key === 'l' || key === 'L') {
+        const sidebarToggle = document.querySelector('span.openclose[role="button"]');
+        if (sidebarToggle) {
+          e.preventDefault();
+          click(sidebarToggle);
+        }
         return;
       }
 

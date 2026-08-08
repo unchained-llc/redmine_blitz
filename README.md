@@ -35,6 +35,7 @@ Restart your Redmine instance.
 | `i` | Go to issues list |
 | `a` | Go to activity |
 | `w` | Go to Wiki |
+| `l` | Open / close sidebar |
 | `/` | Focus search field |
 | `p` | Project jump |
 
@@ -101,6 +102,10 @@ Restart your Redmine instance.
 1. Press `p` to open project search
 2. Type project name
 3. Automatically jumps when narrowed down to one project
+
+### Sidebar Toggle
+
+Press `l` to open or close the sidebar.
 
 ### Quick Description Edit
 
