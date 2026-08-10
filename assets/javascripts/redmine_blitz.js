@@ -6,6 +6,7 @@
   let keyTimer = null;
   let overlay;
   let isHelpOpen = false;
+  let statusPalette;
 
   const isTyping = (el) =>
     el?.matches?.('input, textarea, select, [contenteditable="true"]');
@@ -281,6 +282,7 @@
         scrollTop: '最上へスクロール',
         scrollBottom: '最下へスクロール',
         reply: '返信（チケット詳細ページ）',
+        status: 'ステータスを変更（チケット詳細ページ）',
         edit: '編集 + 説明編集',
         copy: 'チケットをコピー',
         preview: 'プレビュー切替',
@@ -308,6 +310,7 @@
         scrollTop: 'Scroll to top',
         scrollBottom: 'Scroll to bottom',
         reply: 'Reply (issue detail page)',
+        status: 'Change status (issue detail page)',
         edit: 'Edit issue + description',
         copy: 'Copy issue',
         preview: 'Toggle Edit/Preview',
@@ -335,6 +338,7 @@
         scrollTop: 'Défiler vers le haut',
         scrollBottom: 'Défiler vers le bas',
         reply: 'Répondre (page détail)',
+        status: 'Changer le statut (page détail)',
         edit: 'Éditer + description',
         copy: 'Copier la demande',
         preview: 'Basculer Édition/Aperçu',
@@ -370,6 +374,7 @@
         <tr><td colspan="2"><hr></td></tr>
 
         <tr><td><b>r</b></td><td>${t.reply}</td></tr>
+        <tr><td><b>s → a / s / d / f</b></td><td>${t.status}</td></tr>
         <tr><td><b>e</b></td><td>${t.edit}</td></tr>
         <tr><td><b>c</b></td><td>${t.copy}</td></tr>
         <tr><td><b>Shift + Enter</b></td><td>${t.preview}</td></tr>
@@ -412,6 +417,113 @@
     isHelpOpen = false;
   }
 
+  function closeStatusPalette() {
+    if (!statusPalette) return;
+    statusPalette.remove();
+    statusPalette = null;
+  }
+
+  function applyStatus(field, value) {
+    field.value = value;
+    $(field).trigger('change');
+    closeStatusPalette();
+
+    const form = field.form || document.getElementById('issue-form');
+    if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
+  }
+
+  function openStatusPalette() {
+    const field = document.getElementById('issue_status_id');
+    if (!field || field.disabled || statusPalette) return false;
+
+    const statusKeys = ['a', 's', 'd', 'f'];
+    const options = Array.from(field.options)
+      .filter(option => option.value && !option.disabled)
+      .slice(0, statusKeys.length);
+    if (!options.length) return false;
+
+    statusPalette = document.createElement('div');
+    statusPalette.id = 'status-palette-overlay';
+    statusPalette.setAttribute('role', 'dialog');
+    statusPalette.setAttribute('aria-modal', 'true');
+    statusPalette.setAttribute('aria-label', 'ステータスを変更');
+    statusPalette.style.cssText =
+      'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;' +
+      'align-items:center;justify-content:center';
+
+    const modal = document.createElement('div');
+    modal.style.cssText =
+      'background:#fff;color:#222;padding:24px 28px;border-radius:10px;min-width:520px;' +
+      'box-shadow:0 20px 60px rgba(0,0,0,.35);font-size:14px';
+
+    const title = document.createElement('h2');
+    title.textContent = 'ステータスを変更';
+    title.style.cssText = 'margin:0 0 12px;font-size:18px';
+    modal.appendChild(title);
+
+    const hint = document.createElement('p');
+    hint.textContent = 'A / S / D / F で選択してすぐに保存します。Escで閉じます。';
+    hint.style.cssText = 'margin:0 0 12px;color:#555';
+    modal.appendChild(hint);
+
+    const table = document.createElement('table');
+    table.style.cssText = 'width:100%;border-collapse:collapse';
+    table.innerHTML = '<tr><th align="left">キー</th><th align="left">ステータス</th></tr>';
+
+    options.forEach((option, index) => {
+      const row = document.createElement('tr');
+      row.tabIndex = 0;
+      row.dataset.statusIndex = index;
+      row.style.cursor = 'pointer';
+      if (option.selected) row.style.background = '#f5f5f5';
+
+      const key = document.createElement('td');
+      const keyLabel = document.createElement('b');
+      keyLabel.textContent = statusKeys[index];
+      key.appendChild(keyLabel);
+
+      const label = document.createElement('td');
+      label.textContent = option.text;
+      row.append(key, label);
+      row.addEventListener('mouseenter', () => { row.style.background = '#f5f5f5'; });
+      row.addEventListener('mouseleave', () => { row.style.background = option.selected ? '#f5f5f5' : 'transparent'; });
+      row.addEventListener('focus', () => { row.style.background = '#f5f5f5'; });
+      row.addEventListener('blur', () => { row.style.background = option.selected ? '#f5f5f5' : 'transparent'; });
+      row.addEventListener('click', () => applyStatus(field, option.value));
+      table.appendChild(row);
+    });
+    modal.appendChild(table);
+
+    statusPalette.addEventListener('click', event => {
+      if (event.target === statusPalette) closeStatusPalette();
+    });
+    statusPalette.appendChild(modal);
+    document.body.appendChild(statusPalette);
+    statusPalette.querySelector('[data-status-index]')?.focus();
+    return true;
+  }
+
+  function handleStatusPaletteKey(event) {
+    if (!statusPalette) return false;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeStatusPalette();
+      return true;
+    }
+
+    const statusKeys = ['a', 's', 'd', 'f'];
+    const statusIndex = statusKeys.indexOf(String(event.key).toLowerCase());
+    if (statusIndex >= 0) {
+      const button = statusPalette.querySelector('[data-status-index="' + statusIndex + '"]');
+      if (button) button.click();
+      event.preventDefault();
+      return true;
+    }
+
+    return true;
+  }
+
   document.addEventListener(
     'keydown',
     async (e) => {
@@ -438,12 +550,19 @@
         return;
       }
 
+      if (handleStatusPaletteKey(e)) return;
+
       if (key === 'Escape' && isTyping(e.target)) {
         e.preventDefault();
         e.target.blur();
         return;
       }
       if (isTyping(e.target)) return;
+
+      if (key === 's' || key === 'S') {
+        if (openStatusPalette()) e.preventDefault();
+        return;
+      }
 
       if (key === '?' || (e.code === 'Slash' && e.shiftKey)) {
         e.preventDefault();
