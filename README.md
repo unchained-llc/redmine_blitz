@@ -31,6 +31,8 @@ Restart your Redmine instance.
 |-----|--------|
 | `h` | Go to home |
 | `m` | Go to my page |
+| `Backspace` | Go back to the previous page |
+| `^` (Shift+6) | Go up one URL path level |
 | `n` | Create new issue |
 | `i` | Go to issues list |
 | `a` | Go to activity |
@@ -56,6 +58,7 @@ Restart your Redmine instance.
 | `Shift + Enter` | Toggle Edit/Preview tabs (when in textarea) |
 | `⌘/Option + Enter` | Submit form (works on all forms) |
 | `ZZ` | Submit form (Vim-style) |
+| `j` / `k` | Scroll down / up on issue detail pages |
 
 ### Issue List
 

@@ -18,7 +18,9 @@
     return m && m[1];
   };
 
-  const isIssueList = () => document.querySelector('table.issues');
+  const isIssueList = () => document.body.matches(
+    '.controller-issues.action-index, .controller-welcome.action-index'
+  );
   const isIssueDetailPage = () =>
     /^\/issues\/\d+$/.test(window.location.pathname);
   const isSearchResultPage = () => document.getElementById('search-results');
@@ -26,31 +28,30 @@
 
   const style = document.createElement('style');
   style.textContent = `
-    tr.issue.kbd-selected {
-      background: transparent;
+    @media screen and (min-width: 900px) {
+      body:is(.controller-welcome.action-index, .controller-issues.action-index) #content table.issues > tbody > tr.issue.kbd-selected > td {
+        border-radius: 0 !important;
+      }
+      body:is(.controller-welcome.action-index, .controller-issues.action-index) #content table.issues > tbody > tr.issue.kbd-selected > td:first-child {
+        border-left: 1px solid transparent !important;
+        box-shadow: inset 5px 0 0 #5ac8a1 !important;
+      }
     }
-    tr.issue.kbd-selected > td:first-child {
-      box-shadow: inset 4px 0 0 #1DC9A0;
-    }
-    #search-results dt.kbd-selected{
-      border-radius: 6px;
-      background-color: rgba(29, 201, 160, 0.69) !important;
-    }
-    #search-results dt.kbd-selected,
-    #search-results dt.kbd-selected * {
-      color: #fff !important;
-      vertical-align: middle;
-    }
-    #search-results dt { position: relative; }
+
   `;
   document.head.appendChild(style);
 
   function getRows(type) {
     if (type === 'issue') {
-      return isIssueList()
-        ? Array.from(document.querySelectorAll('table.issues tbody tr'))
-            .filter(tr => tr.querySelector('a[href^="/issues/"]'))
-        : [];
+      if (!isIssueList()) return [];
+
+      const selector = document.body.matches('.controller-welcome.action-index')
+        ? '#my-page .block-issuequery table.issues tbody > tr.issue'
+        : '#content table.issues tbody > tr.issue';
+
+      return Array.from(document.querySelectorAll(selector))
+        .filter(tr => tr.querySelector('a[href^="/issues/"]'))
+        .filter(tr => tr.getClientRects().length > 0);
     }
     if (type === 'search') {
       const dl = document.getElementById('search-results');
@@ -63,7 +64,12 @@
 
   function highlightRow(type, index) {
     getRows(type).forEach((row, i) => {
-      row.classList.toggle('kbd-selected', i === index);
+      const selected = i === index;
+      row.classList.toggle('kbd-selected', selected);
+      if (type === 'search') {
+        const detail = row.nextElementSibling;
+        if (detail?.tagName === 'DD') detail.classList.toggle('kbd-selected', selected);
+      }
     });
   }
 
@@ -78,8 +84,16 @@
     }
 
     highlightRow(type, index);
-    rows[index].scrollIntoView({ block: 'nearest' });
+    rows[index].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     return index;
+  }
+
+  function goUpOneLevel() {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (!parts.length) return;
+
+    parts.pop();
+    window.location.href = parts.length ? `/${parts.join('/')}` : '/';
   }
 
   function submitIssueForm() {
@@ -173,7 +187,7 @@
     if (issueIndex === -1) {
       issueIndex = 0;
       highlightRow('issue', 0);
-      rows[0].scrollIntoView({ block: 'nearest' });
+      rows[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
     rows[issueIndex].querySelector('input[type="checkbox"]')?.click();
@@ -272,6 +286,9 @@
         action: 'アクション',
         home: 'ホームへ移動',
         myPage: 'マイページへ移動',
+        back: '前のページへ戻る',
+        forward: '次のページへ進む',
+        up: '1つ上の階層へ移動',
         newIssue: '新しいチケット',
         search: '検索',
         projectJump: 'プロジェクトジャンプ',
@@ -287,7 +304,7 @@
         copy: 'チケットをコピー',
         preview: 'プレビュー切替',
         submit: '送信（フォーム）',
-        navigation: '選択移動（チケット / 検索結果）',
+        navigation: '選択移動（チケット / 検索結果）<br>チケット詳細ではスクロール',
         toggle: 'チケット選択 ON / OFF',
         open: 'チェック1件 → 開く<br>チェック2件以上 → 一括編集',
         newTab: '新しいタブで開く',
@@ -300,6 +317,9 @@
         action: 'Action',
         home: 'Go to home',
         myPage: 'Go to my page',
+        back: 'Go back',
+        forward: 'Go forward',
+        up: 'Go up one level',
         newIssue: 'Create new issue',
         search: 'Search',
         projectJump: 'Project jump',
@@ -315,7 +335,7 @@
         copy: 'Copy issue',
         preview: 'Toggle Edit/Preview',
         submit: 'Submit form',
-        navigation: 'Navigate (issues / search results)',
+        navigation: 'Navigate (issues / search results)<br>Scroll on issue detail pages',
         toggle: 'Toggle issue selection',
         open: '1 checked → open<br>2+ checked → bulk edit',
         newTab: 'Open in new tab',
@@ -328,6 +348,9 @@
         action: 'Action',
         home: 'Aller à l\'accueil',
         myPage: 'Aller à ma page',
+        back: 'Retourner à la page précédente',
+        forward: 'Avancer à la page suivante',
+        up: 'Remonter d\'un niveau',
         newIssue: 'Créer une nouvelle demande',
         search: 'Rechercher',
         projectJump: 'Saut de projet',
@@ -343,7 +366,7 @@
         copy: 'Copier la demande',
         preview: 'Basculer Édition/Aperçu',
         submit: 'Soumettre le formulaire',
-        navigation: 'Naviguer (demandes / résultats)',
+        navigation: 'Naviguer (demandes / résultats)<br>Défiler sur les pages de détail',
         toggle: 'Sélectionner/désélectionner',
         open: '1 cochée → ouvrir<br>2+ cochées → édition en masse',
         newTab: 'Ouvrir dans un nouvel onglet',
@@ -361,6 +384,9 @@
 
         <tr><td><b>h</b></td><td>${t.home}</td></tr>
         <tr><td><b>m</b></td><td>${t.myPage}</td></tr>
+        <tr><td><b>[</b></td><td>${t.back}</td></tr>
+        <tr><td><b>]</b></td><td>${t.forward}</td></tr>
+        <tr><td><b>^</b></td><td>${t.up}</td></tr>
         <tr><td><b>n</b></td><td>${t.newIssue}</td></tr>
         <tr><td><b>/</b></td><td>${t.search}</td></tr>
         <tr><td><b>p</b></td><td>${t.projectJump}</td></tr>
@@ -570,6 +596,24 @@
         return;
       }
 
+      if (key === '[') {
+        e.preventDefault();
+        window.history.back();
+        return;
+      }
+
+      if (key === ']') {
+        e.preventDefault();
+        window.history.forward();
+        return;
+      }
+
+      if (key === '^' || (e.code === 'Digit6' && e.shiftKey)) {
+        e.preventDefault();
+        goUpOneLevel();
+        return;
+      }
+
       if (key === 'c' || key === 'C') {
         e.preventDefault();
         const btn = document.querySelector('a.icon.icon-copy, a.icon-copy, a[href$="/copy"]');
@@ -668,6 +712,15 @@
           }
           return;
         }
+      }
+
+      if (isIssueDetailPage() && (key === 'j' || key === 'k')) {
+        e.preventDefault();
+        window.scrollBy({
+          top: (key === 'j' ? 1 : -1) * Math.round(window.innerHeight * 0.7),
+          behavior: 'smooth',
+        });
+        return;
       }
 
       if (key === 'r' || key === 'R') {
