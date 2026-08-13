@@ -311,7 +311,7 @@
         scrollTop: '最上へスクロール',
         scrollBottom: '最下へスクロール',
         reply: '返信（チケット詳細ページ）',
-        status: 'ステータスを変更（チケット詳細ページ）',
+        status: 'ステータスを変更（詳細画面 / xで選択したチケット）<br>複数選択時は共通候補のみ',
         recent: '最近見たチケットを開く',
         edit: '編集 + 説明編集',
         copy: 'チケットをコピー',
@@ -352,7 +352,7 @@
         scrollTop: 'Scroll to top',
         scrollBottom: 'Scroll to bottom',
         reply: 'Reply (issue detail page)',
-        status: 'Change status (issue detail page)',
+        status: 'Change status (issue detail / x-selected issues)<br>Only common options appear for multiple issues',
         recent: 'Open recently viewed issues',
         edit: 'Edit issue + description',
         copy: 'Copy issue',
@@ -393,7 +393,7 @@
         scrollTop: 'Défiler vers le haut',
         scrollBottom: 'Défiler vers le bas',
         reply: 'Répondre (page détail)',
-        status: 'Changer le statut (page détail)',
+        status: 'Changer le statut (détail / demandes sélectionnées)<br>Options communes uniquement en sélection multiple',
         recent: 'Ouvrir les demandes récemment consultées',
         edit: 'Éditer + description',
         copy: 'Copier la demande',
@@ -536,24 +536,117 @@
     return true;
   }
 
-  function applyStatus(field, value) {
-    field.value = value;
-    $(field).trigger('change');
-    closeStatusPalette();
+  function closeNativeContextMenu() {
+    const menu = document.getElementById('context-menu');
+    if (!menu) return;
 
-    const form = field.form || document.getElementById('issue-form');
-    if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
+    menu.style.display = 'none';
+    menu.querySelectorAll('ul').forEach(list => {
+      list.style.display = '';
+    });
   }
 
-  function openStatusPalette() {
-    const field = document.getElementById('issue_status_id');
-    if (!field || field.disabled || statusPalette) return false;
+  function selectedIssueRows() {
+    return getRows('issue').filter(row =>
+      row.querySelector('input[type="checkbox"]')?.checked
+    );
+  }
+
+  function nativeStatusActions(menu) {
+    if (!menu) return [];
+
+    // Redmine's context menu puts each nested action group in a `.folder`.
+    // Prefer structural markers over translated labels. The status group is
+    // the folder whose submenu contains status-id actions.
+    const folders = Array.from(menu.querySelectorAll(':scope > ul > li.folder'));
+    const statusFolder = folders.find(folder => {
+      const submenu = folder.querySelector(':scope > ul');
+      return submenu?.querySelector(
+        'a[href*="status_id"], a[data-status-id], [data-status-id]'
+      );
+    });
+
+    if (!statusFolder) return [];
+
+    return Array.from(statusFolder.querySelectorAll(':scope > ul > li > a'))
+      .filter(link => !link.classList.contains('disabled') && !link.closest('.disabled'))
+      .map(link => ({
+        label: link.textContent.trim(),
+        activate: () => link.click(),
+      }))
+      .filter(action => action.label);
+  }
+
+  function showNativeContextMenuForSelection() {
+    const rows = selectedIssueRows();
+    if (!rows.length) return false;
+
+    // Redmine's context-menu plugin uses this class as its source of
+    // selected issue IDs. Keep the checkbox selection and native selection
+    // state in sync before asking Redmine to build the menu.
+    rows.forEach(selectedRow => selectedRow.classList.add('context-menu-selection'));
+
+    const row = issueIndex >= 0 && rows.includes(getRows('issue')[issueIndex])
+      ? getRows('issue')[issueIndex]
+      : rows[0];
+    const event = new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+      clientX: Math.round(window.innerWidth / 2),
+      clientY: Math.round(window.innerHeight / 2),
+    });
+    row.dispatchEvent(event);
+    return true;
+  }
+
+  function applyStatusAction(action) {
+    closeStatusPalette();
+    closeNativeContextMenu();
+    action.activate();
+  }
+
+  function openStatusPalette(retry = 0) {
+    if (statusPalette) return true;
+    if (isIssueList() && !selectedIssueRows().length) return false;
+
+    if (isIssueList() && retry === 0) {
+      closeNativeContextMenu();
+      showNativeContextMenuForSelection();
+    }
+
+    const menu = document.getElementById('context-menu');
+    const actions = isIssueList()
+      ? nativeStatusActions(menu)
+      : (() => {
+          const field = document.getElementById('issue_status_id');
+          if (!field || field.disabled) return [];
+          return Array.from(field.options)
+            .filter(option => option.value && !option.disabled)
+            .slice(0, 4)
+            .map(option => ({
+              label: option.text,
+              activate: () => {
+                field.value = option.value;
+                $(field).trigger('change');
+                const form = field.form || document.getElementById('issue-form');
+                if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
+              },
+            }));
+        })();
+
+    let unavailable = false;
+    if (!actions.length) {
+      closeNativeContextMenu();
+      if (isIssueList() && retry < 10) {
+        window.setTimeout(() => openStatusPalette(retry + 1), 50);
+        return true;
+      }
+      unavailable = true;
+    }
 
     const statusKeys = ['a', 's', 'd', 'f'];
-    const options = Array.from(field.options)
-      .filter(option => option.value && !option.disabled)
-      .slice(0, statusKeys.length);
-    if (!options.length) return false;
+    const options = actions.slice(0, statusKeys.length);
+    closeNativeContextMenu();
 
     statusPalette = document.createElement('div');
     statusPalette.id = 'status-palette-overlay';
@@ -579,8 +672,12 @@
 
     const hint = document.createElement('p');
     hint.className = 'zenmine-command-palette-hint';
-    hint.textContent = 'J / Kで移動、Enterで選択。A / S / D / Fでも選択できます。Escで閉じます。';
-    hint.style.cssText = 'margin:0 0 12px;color:#555';
+    hint.textContent = unavailable
+      ? '選択したチケットに共通して変更できるステータスがありません。'
+      : 'J / Kで移動、Enterで選択。A / S / D / Fでも選択できます。Escで閉じます。';
+    hint.style.cssText = unavailable
+      ? 'display:block !important;margin:0 0 12px;color:#555;line-height:1.7'
+      : 'margin:0 0 12px;color:#555';
     modal.appendChild(hint);
 
     const table = document.createElement('table');
@@ -600,7 +697,7 @@
       key.appendChild(keyLabel);
 
       const label = document.createElement('td');
-      label.textContent = option.text;
+      label.textContent = option.label;
       const action = document.createElement('td');
       action.className = 'zenmine-command-palette-row-action';
       action.textContent = '↵';
@@ -611,17 +708,19 @@
       row.addEventListener('mouseleave', () => {
         if (!row.classList.contains('zenmine-palette-row-selected')) row.style.background = 'transparent';
       });
-      row.addEventListener('click', () => applyStatus(field, option.value));
+      row.addEventListener('click', () => applyStatusAction(option));
       table.appendChild(row);
     });
-    modal.appendChild(table);
+    if (!unavailable) modal.appendChild(table);
 
     statusPalette.addEventListener('click', event => {
       if (event.target === statusPalette) closeStatusPalette();
     });
     const footer = document.createElement('div');
     footer.className = 'zenmine-command-palette-footer';
-    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>↵</b> 選択</span><span><b>esc</b> 閉じる</span>';
+    footer.innerHTML = unavailable
+      ? '<span><b>esc</b> 閉じる</span>'
+      : '<span><b>↑ K</b><b>↓ J</b></span><span><b>↵</b> 選択</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     statusPalette.appendChild(modal);
     document.body.appendChild(statusPalette);
