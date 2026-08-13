@@ -66,7 +66,8 @@ Restart your Redmine instance.
 |-----|--------|
 | `j` | Move to next row |
 | `k` | Move to previous row |
-| `x` or `Space` | Toggle issue selection |
+| `x` | Toggle issue selection |
+| `Space` | Open / close Quick Look preview |
 | `Enter` | Open issue (bulk edit if 2+ checked) |
 | `t` | Open issue in new tab |
 | `Esc` | Clear selection (press twice to uncheck all) |
@@ -92,8 +93,9 @@ Restart your Redmine instance.
 ### Efficient Issue List Operations
 
 1. Use `j`/`k` keys to select issues
-2. Use `x` or `Space` to check multiple issues
-3. Press `Enter` to go to bulk edit
+2. Use `x` to check multiple issues
+3. Press `Space` to open or close Quick Look
+4. Press `Enter` to go to bulk edit
 
 ### Two-Stage Selection Clear
 
