@@ -7,6 +7,7 @@
   let overlay;
   let isHelpOpen = false;
   let statusPalette;
+  let recentPalette;
 
   const isTyping = (el) =>
     el?.matches?.('input, textarea, select, [contenteditable="true"]');
@@ -267,7 +268,8 @@
     overlay.style.cssText =
       'position:fixed;inset:0;z-index:99999;' +
       'background:rgba(0,0,0,.55);display:none;' +
-      'align-items:center;justify-content:center';
+      'align-items:center;justify-content:center;' +
+      'backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
 
     const modal = document.createElement('div');
     modal.style.cssText =
@@ -300,6 +302,7 @@
         scrollBottom: '最下へスクロール',
         reply: '返信（チケット詳細ページ）',
         status: 'ステータスを変更（チケット詳細ページ）',
+        recent: '最近見たチケットを開く',
         edit: '編集 + 説明編集',
         copy: 'チケットをコピー',
         preview: 'プレビュー切替',
@@ -308,7 +311,7 @@
         quickLook: 'クイックプレビュー表示 / 非表示',
         toggle: 'チケット選択 ON / OFF',
         open: 'チェック1件 → 開く<br>チェック2件以上 → 一括編集',
-        newTab: '新しいタブで開く',
+        newTab: 'タブで開く',
         escape: '選択解除（2回で全解除）<br>入力中はフォーカス解除',
         help: 'ヘルプ表示'
       },
@@ -332,6 +335,7 @@
         scrollBottom: 'Scroll to bottom',
         reply: 'Reply (issue detail page)',
         status: 'Change status (issue detail page)',
+        recent: 'Open recently viewed issues',
         edit: 'Edit issue + description',
         copy: 'Copy issue',
         preview: 'Toggle Edit/Preview',
@@ -364,6 +368,7 @@
         scrollBottom: 'Défiler vers le bas',
         reply: 'Répondre (page détail)',
         status: 'Changer le statut (page détail)',
+        recent: 'Ouvrir les demandes récemment consultées',
         edit: 'Éditer + description',
         copy: 'Copier la demande',
         preview: 'Basculer Édition/Aperçu',
@@ -404,6 +409,7 @@
 
         <tr><td><b>r</b></td><td>${t.reply}</td></tr>
         <tr><td><b>s → a / s / d / f</b></td><td>${t.status}</td></tr>
+        <tr><td><b>o → 1〜9</b></td><td>${t.recent}</td></tr>
         <tr><td><b>e</b></td><td>${t.edit}</td></tr>
         <tr><td><b>c</b></td><td>${t.copy}</td></tr>
         <tr><td><b>Shift + Enter</b></td><td>${t.preview}</td></tr>
@@ -419,7 +425,7 @@
           <td><b>Enter</b></td>
           <td>${t.open}</td>
         </tr>
-        <tr><td><b>t</b></td><td>${t.newTab}</td></tr>
+        <tr><td><b>t / T</b></td><td>${t.newTab}</td></tr>
         <tr>
           <td><b>Esc</b></td>
           <td>${t.escape}</td>
@@ -453,6 +459,47 @@
     statusPalette = null;
   }
 
+  function closeRecentPalette() {
+    if (!recentPalette) return;
+    recentPalette.remove();
+    recentPalette = null;
+  }
+
+  function setPaletteSelection(palette, selector, index) {
+    if (!palette) return;
+    const rows = Array.from(palette.querySelectorAll(selector));
+    const visibleRows = rows.filter(row => !row.hidden);
+    palette.dataset.selectedIndex = String(index);
+    rows.forEach(row => {
+      const selected = visibleRows[index] === row;
+      row.classList.toggle('zenmine-palette-row-selected', selected);
+      row.style.background = selected ? '#f5f5f5' : 'transparent';
+      row.style.boxShadow = selected ? 'inset 5px 0 0 #5ac8a1' : 'none';
+    });
+  }
+
+  function movePaletteSelection(palette, selector, delta) {
+    const rows = Array.from(palette?.querySelectorAll(selector) || [])
+      .filter(row => !row.hidden);
+    if (!rows.length) return;
+
+    const current = Number(palette.dataset.selectedIndex);
+    const index = Number.isInteger(current) && current >= 0
+      ? Math.max(0, Math.min(rows.length - 1, current + delta))
+      : (delta > 0 ? 0 : rows.length - 1);
+    setPaletteSelection(palette, selector, index);
+  }
+
+  function activatePaletteSelection(palette, selector) {
+    const index = Number(palette?.dataset.selectedIndex);
+    if (!Number.isInteger(index) || index < 0) return false;
+    const row = Array.from(palette.querySelectorAll(selector))
+      .filter(candidate => !candidate.hidden)[index];
+    if (!row) return false;
+    row.click();
+    return true;
+  }
+
   function applyStatus(field, value) {
     field.value = value;
     $(field).trigger('change');
@@ -474,6 +521,7 @@
 
     statusPalette = document.createElement('div');
     statusPalette.id = 'status-palette-overlay';
+    statusPalette.className = 'zenmine-command-palette-overlay';
     statusPalette.setAttribute('role', 'dialog');
     statusPalette.setAttribute('aria-modal', 'true');
     statusPalette.setAttribute('aria-label', 'ステータスを変更');
@@ -482,30 +530,33 @@
       'align-items:center;justify-content:center';
 
     const modal = document.createElement('div');
+    modal.className = 'zenmine-command-palette';
     modal.style.cssText =
       'background:#fff;color:#222;padding:24px 28px;border-radius:10px;min-width:520px;' +
       'box-shadow:0 20px 60px rgba(0,0,0,.35);font-size:14px';
 
     const title = document.createElement('h2');
+    title.className = 'zenmine-command-palette-title';
     title.textContent = 'ステータスを変更';
     title.style.cssText = 'margin:0 0 12px;font-size:18px';
     modal.appendChild(title);
 
     const hint = document.createElement('p');
-    hint.textContent = 'A / S / D / F で選択してすぐに保存します。Escで閉じます。';
+    hint.className = 'zenmine-command-palette-hint';
+    hint.textContent = 'J / Kで移動、Enterで選択。A / S / D / Fでも選択できます。Escで閉じます。';
     hint.style.cssText = 'margin:0 0 12px;color:#555';
     modal.appendChild(hint);
 
     const table = document.createElement('table');
+    table.className = 'zenmine-command-palette-table';
     table.style.cssText = 'width:100%;border-collapse:collapse';
     table.innerHTML = '<tr><th align="left">キー</th><th align="left">ステータス</th></tr>';
 
     options.forEach((option, index) => {
       const row = document.createElement('tr');
-      row.tabIndex = 0;
+      row.className = 'zenmine-command-palette-row';
       row.dataset.statusIndex = index;
       row.style.cursor = 'pointer';
-      if (option.selected) row.style.background = '#f5f5f5';
 
       const key = document.createElement('td');
       const keyLabel = document.createElement('b');
@@ -514,11 +565,16 @@
 
       const label = document.createElement('td');
       label.textContent = option.text;
-      row.append(key, label);
-      row.addEventListener('mouseenter', () => { row.style.background = '#f5f5f5'; });
-      row.addEventListener('mouseleave', () => { row.style.background = option.selected ? '#f5f5f5' : 'transparent'; });
-      row.addEventListener('focus', () => { row.style.background = '#f5f5f5'; });
-      row.addEventListener('blur', () => { row.style.background = option.selected ? '#f5f5f5' : 'transparent'; });
+      const action = document.createElement('td');
+      action.className = 'zenmine-command-palette-row-action';
+      action.textContent = '↵';
+      row.append(key, label, action);
+      row.addEventListener('mouseenter', () => {
+        if (!row.classList.contains('zenmine-palette-row-selected')) row.style.background = '#f5f5f5';
+      });
+      row.addEventListener('mouseleave', () => {
+        if (!row.classList.contains('zenmine-palette-row-selected')) row.style.background = 'transparent';
+      });
       row.addEventListener('click', () => applyStatus(field, option.value));
       table.appendChild(row);
     });
@@ -527,14 +583,204 @@
     statusPalette.addEventListener('click', event => {
       if (event.target === statusPalette) closeStatusPalette();
     });
+    const footer = document.createElement('div');
+    footer.className = 'zenmine-command-palette-footer';
+    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>↵</b> 選択</span><span><b>esc</b> 閉じる</span>';
+    modal.appendChild(footer);
     statusPalette.appendChild(modal);
     document.body.appendChild(statusPalette);
-    statusPalette.querySelector('[data-status-index]')?.focus();
+    setPaletteSelection(statusPalette, '[data-status-index]', 0);
+    return true;
+  }
+
+  function openRecentPalette() {
+    if (recentPalette) return true;
+
+    let issues;
+    try {
+      issues = JSON.parse(localStorage.getItem('recentIssues') || '[]');
+    } catch (_error) {
+      issues = [];
+    }
+
+    const currentIssue = window.location.pathname.match(/^\/issues\/(\d+)\/?$/)?.[1];
+    const candidates = issues
+      .filter(issue => issue && /^\d+$/.test(String(issue.ID)) && String(issue.ID) !== currentIssue)
+      .slice(0, 9);
+    if (!candidates.length) return false;
+
+    recentPalette = document.createElement('div');
+    recentPalette.id = 'recent-palette-overlay';
+    recentPalette.className = 'zenmine-command-palette-overlay zenmine-recent-palette-overlay';
+    recentPalette.setAttribute('role', 'dialog');
+    recentPalette.setAttribute('aria-modal', 'true');
+    recentPalette.setAttribute('aria-label', '最近見たチケット');
+    recentPalette.style.cssText =
+      'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;' +
+      'align-items:center;justify-content:center';
+
+    const modal = document.createElement('div');
+    modal.className = 'zenmine-command-palette';
+    modal.style.cssText =
+      'background:#fff;color:#222;padding:24px 28px;border-radius:10px;min-width:520px;' +
+      'max-width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,.35);font-size:14px';
+
+    const title = document.createElement('h2');
+    title.className = 'zenmine-command-palette-title';
+    title.textContent = '最近見たチケット';
+    title.style.cssText = 'margin:0 0 12px;font-size:18px';
+    modal.appendChild(title);
+
+    const hint = document.createElement('p');
+    hint.className = 'zenmine-command-palette-hint';
+    hint.textContent = 'J / Kで移動、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
+    hint.style.cssText = 'margin:0 0 12px;color:#555';
+    modal.appendChild(hint);
+
+    const filter = document.createElement('input');
+    filter.className = 'zenmine-command-palette-search';
+    filter.type = 'search';
+    filter.placeholder = '最近見たチケットを検索';
+    filter.setAttribute('aria-label', '最近見たチケットを検索');
+    filter.style.cssText = 'display:block;width:100%;box-sizing:border-box;margin:0;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px';
+    const searchBox = document.createElement('div');
+    searchBox.className = 'zenmine-command-palette-search-box';
+    const searchIcon = document.createElement('span');
+    searchIcon.className = 'zenmine-command-palette-search-icon';
+    const divider = document.createElement('span');
+    divider.className = 'zenmine-command-palette-search-divider';
+    const escapeKey = document.createElement('b');
+    escapeKey.className = 'zenmine-command-palette-escape-key';
+    escapeKey.textContent = 'esc';
+    searchBox.append(searchIcon, filter, divider, escapeKey);
+    modal.appendChild(searchBox);
+
+    const table = document.createElement('table');
+    table.className = 'zenmine-command-palette-table';
+    table.style.cssText = 'width:100%;border-collapse:collapse';
+    table.innerHTML = '<tr><th align="left">キー</th><th align="left">チケット</th></tr>';
+    candidates.forEach((issue, index) => {
+      const row = document.createElement('tr');
+      row.className = 'zenmine-command-palette-row';
+      row.dataset.recentIndex = index;
+      row.dataset.issueId = issue.ID;
+      row.style.cursor = 'pointer';
+
+      const key = document.createElement('td');
+      const keyLabel = document.createElement('b');
+      keyLabel.textContent = String(index + 1);
+      key.appendChild(keyLabel);
+
+      const label = document.createElement('td');
+      label.textContent = issue.Str || `#${issue.ID}`;
+      const action = document.createElement('td');
+      action.className = 'zenmine-command-palette-row-action';
+      action.textContent = '↵';
+      row.append(key, label, action);
+      row.addEventListener('mouseenter', () => {
+        if (!row.classList.contains('zenmine-palette-row-selected')) row.style.background = '#f5f5f5';
+      });
+      row.addEventListener('mouseleave', () => {
+        if (!row.classList.contains('zenmine-palette-row-selected')) row.style.background = 'transparent';
+      });
+      row.addEventListener('click', () => { window.location.href = `/issues/${issue.ID}`; });
+      table.appendChild(row);
+    });
+    modal.appendChild(table);
+    const footer = document.createElement('div');
+    footer.className = 'zenmine-command-palette-footer';
+    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
+    modal.appendChild(footer);
+    filter.addEventListener('input', () => {
+      const terms = filter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      table.querySelectorAll('[data-recent-index]').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.hidden = terms.length > 0 && !terms.every(term => text.includes(term));
+      });
+      const visibleRows = Array.from(table.querySelectorAll('[data-recent-index]'))
+        .filter(row => !row.hidden);
+      setPaletteSelection(recentPalette, '[data-recent-index]', visibleRows.length === 1 ? 0 : -1);
+      if (terms.length > 0 && visibleRows.length === 1) visibleRows[0].click();
+    });
+
+    recentPalette.addEventListener('click', event => {
+      if (event.target === recentPalette) closeRecentPalette();
+    });
+    recentPalette.appendChild(modal);
+    document.body.appendChild(recentPalette);
+    setPaletteSelection(recentPalette, '[data-recent-index]', 0);
     return true;
   }
 
   function handleStatusPaletteKey(event) {
+    if (recentPalette) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeRecentPalette();
+        return true;
+      }
+      if (event.key === '/' && !isTyping(event.target)) {
+        const filter = recentPalette.querySelector('input[type="search"]');
+        if (filter) {
+          filter.style.display = 'block';
+          filter.focus();
+          filter.select();
+          event.preventDefault();
+        }
+        return true;
+      }
+      if (isTyping(event.target)) {
+        if (event.key === 'Enter') {
+          const visibleRows = Array.from(recentPalette.querySelectorAll('[data-recent-index]'))
+            .filter(row => !row.hidden);
+          if (visibleRows.length === 1) {
+            event.preventDefault();
+            visibleRows[0].click();
+          }
+        }
+        return false;
+      }
+      if (event.key === 'j' || event.key === 'J' || event.key === 'k' || event.key === 'K') {
+        movePaletteSelection(recentPalette, '[data-recent-index]', event.key.toLowerCase() === 'j' ? 1 : -1);
+        event.preventDefault();
+        return true;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        activatePaletteSelection(recentPalette, '[data-recent-index]');
+        return true;
+      }
+      if (event.key === 't' || event.key === 'T') {
+        const index = Number(recentPalette.dataset.selectedIndex);
+        const row = Array.from(recentPalette.querySelectorAll('[data-recent-index]'))
+          .filter(candidate => !candidate.hidden)[index];
+        if (row?.dataset.issueId) {
+          window.open(`/issues/${row.dataset.issueId}`, '_blank', 'noopener');
+          event.preventDefault();
+        }
+        return true;
+      }
+      const recentIndex = Number(event.key) - 1;
+      const recentRow = recentPalette.querySelector('[data-recent-index="' + recentIndex + '"]');
+      if (recentIndex >= 0 && recentRow && !recentRow.hidden) {
+        recentRow.click();
+        event.preventDefault();
+      }
+      return true;
+    }
+
     if (!statusPalette) return false;
+
+    if (event.key === 'j' || event.key === 'J' || event.key === 'k' || event.key === 'K') {
+      movePaletteSelection(statusPalette, '[data-status-index]', event.key.toLowerCase() === 'j' ? 1 : -1);
+      event.preventDefault();
+      return true;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      activatePaletteSelection(statusPalette, '[data-status-index]');
+      return true;
+    }
 
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -588,6 +834,11 @@
         return;
       }
       if (isTyping(e.target)) return;
+
+      if (key === 'o' || key === 'O') {
+        if (openRecentPalette()) e.preventDefault();
+        return;
+      }
 
       if (key === 's' || key === 'S') {
         if (openStatusPalette()) e.preventDefault();
