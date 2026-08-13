@@ -305,7 +305,7 @@
         preview: 'プレビュー切替',
         submit: '送信（フォーム）',
         navigation: '選択移動（チケット / 検索結果）<br>チケット詳細ではスクロール',
-        toggle: 'チケット選択 ON / OFF',
+        toggle: 'チケット選択 ON / OFF（x）',
         open: 'チェック1件 → 開く<br>チェック2件以上 → 一括編集',
         newTab: '新しいタブで開く',
         escape: '選択解除（2回で全解除）<br>入力中はフォーカス解除',
@@ -336,7 +336,7 @@
         preview: 'Toggle Edit/Preview',
         submit: 'Submit form',
         navigation: 'Navigate (issues / search results)<br>Scroll on issue detail pages',
-        toggle: 'Toggle issue selection',
+        toggle: 'Toggle issue selection (x)',
         open: '1 checked → open<br>2+ checked → bulk edit',
         newTab: 'Open in new tab',
         escape: 'Clear selection (twice to uncheck all)<br>Blur input field when focused',
@@ -367,7 +367,7 @@
         preview: 'Basculer Édition/Aperçu',
         submit: 'Soumettre le formulaire',
         navigation: 'Naviguer (demandes / résultats)<br>Défiler sur les pages de détail',
-        toggle: 'Sélectionner/désélectionner',
+        toggle: 'Sélectionner/désélectionner (x)',
         open: '1 cochée → ouvrir<br>2+ cochées → édition en masse',
         newTab: 'Ouvrir dans un nouvel onglet',
         escape: 'Effacer la sélection (2× pour tout décocher)<br>Perdre le focus en saisie',
@@ -410,7 +410,7 @@
         <tr><td colspan="2"><hr></td></tr>
 
         <tr><td><b>j / k</b></td><td>${t.navigation}</td></tr>
-        <tr><td><b>x / Space</b></td><td>${t.toggle}</td></tr>
+        <tr><td><b>x</b></td><td>${t.toggle}</td></tr>
         <tr>
           <td><b>Enter</b></td>
           <td>${t.open}</td>
@@ -699,7 +699,7 @@
           openIssue();
           return;
         }
-        if (key === 'x' || key === ' ') {
+        if (key === 'x') {
           e.preventDefault();
           toggleIssueCheckbox();
           return;
