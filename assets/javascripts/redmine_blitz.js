@@ -265,6 +265,7 @@
   function buildOverlay() {
     overlay = document.createElement('div');
     overlay.id = 'shortcut-overlay';
+    overlay.className = 'zenmine-shortcut-overlay';
     overlay.style.cssText =
       'position:fixed;inset:0;z-index:99999;' +
       'background:rgba(0,0,0,.55);display:none;' +
@@ -272,6 +273,7 @@
       'backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)';
 
     const modal = document.createElement('div');
+    modal.className = 'zenmine-shortcut-modal';
     modal.style.cssText =
       'background:#fff;color:#222;padding:24px 28px;' +
       'border-radius:10px;min-width:520px;' +
@@ -284,6 +286,14 @@
     const i18n = {
       ja: {
         title: 'キーボードショートカット',
+        subtitle: 'W.A.Cをより速く、快適に操作するためのショートカット一覧です。',
+        navigationGroup: 'ナビゲーション',
+        projectGroup: 'チケット・プロジェクト',
+        issueGroup: 'チケット操作',
+        selectionGroup: '選択・プレビュー',
+        otherGroup: 'その他',
+        hintTitle: '使い方のヒント',
+        hintText: '一覧で j / k で移動し、Space でクイックプレビュー。Enter で開くことで、スムーズに作業できます。',
         key: 'キー',
         action: 'アクション',
         home: 'ホームへ移動',
@@ -317,6 +327,14 @@
       },
       en: {
         title: 'Keyboard Shortcuts',
+        subtitle: 'Shortcuts for faster, more comfortable W.A.C operation.',
+        navigationGroup: 'Navigation',
+        projectGroup: 'Issues · Projects',
+        issueGroup: 'Issue actions',
+        selectionGroup: 'Selection · Preview',
+        otherGroup: 'Other',
+        hintTitle: 'Tips',
+        hintText: 'Use j / k to move, Space for Quick Preview, and Enter to open items smoothly.',
         key: 'Key',
         action: 'Action',
         home: 'Go to home',
@@ -350,6 +368,14 @@
       },
       fr: {
         title: 'Raccourcis clavier',
+        subtitle: 'Les raccourcis pour utiliser W.A.C plus rapidement et confortablement.',
+        navigationGroup: 'Navigation',
+        projectGroup: 'Demandes · Projets',
+        issueGroup: 'Actions sur les demandes',
+        selectionGroup: 'Sélection · Aperçu',
+        otherGroup: 'Autres',
+        hintTitle: 'Conseils',
+        hintText: 'Utilisez j / k pour vous déplacer, Space pour l’aperçu et Enter pour ouvrir.',
         key: 'Touche',
         action: 'Action',
         home: 'Aller à l\'accueil',
@@ -386,58 +412,68 @@
     const t = i18n[lang];
 
     modal.innerHTML = `
-      <h2 style="margin:0 0 12px;font-size:18px;">${t.title}</h2>
-      <table style="width:100%;border-collapse:collapse;">
-        <tr><th align="left">${t.key}</th><th align="left">${t.action}</th></tr>
-
-        <tr><td><b>h</b></td><td>${t.home}</td></tr>
-        <tr><td><b>m</b></td><td>${t.myPage}</td></tr>
-        <tr><td><b>[</b></td><td>${t.back}</td></tr>
-        <tr><td><b>]</b></td><td>${t.forward}</td></tr>
-        <tr><td><b>^</b></td><td>${t.up}</td></tr>
-        <tr><td><b>n</b></td><td>${t.newIssue}</td></tr>
-        <tr><td><b>/</b></td><td>${t.search}</td></tr>
-        <tr><td><b>p</b></td><td>${t.projectJump}</td></tr>
-        <tr><td><b>i</b></td><td>${t.issueList}</td></tr>
-        <tr><td><b>a</b></td><td>${t.activity}</td></tr>
-        <tr><td><b>w</b></td><td>${t.wiki}</td></tr>
-        <tr><td><b>l</b></td><td>${t.sidebar}</td></tr>
-        <tr><td><b>gg</b></td><td>${t.scrollTop}</td></tr>
-        <tr><td><b>G</b></td><td>${t.scrollBottom}</td></tr>
-
-        <tr><td colspan="2"><hr></td></tr>
-
-        <tr><td><b>r</b></td><td>${t.reply}</td></tr>
-        <tr><td><b>s → a / s / d / f</b></td><td>${t.status}</td></tr>
-        <tr><td><b>o → 1〜9</b></td><td>${t.recent}</td></tr>
-        <tr><td><b>e</b></td><td>${t.edit}</td></tr>
-        <tr><td><b>c</b></td><td>${t.copy}</td></tr>
-        <tr><td><b>Shift + Enter</b></td><td>${t.preview}</td></tr>
-        <tr><td><b>⌘ / Option + Enter</b></td><td>${t.submit}</td></tr>
-        <tr><td><b>ZZ</b></td><td>${t.submit}</td></tr>
-
-        <tr><td colspan="2"><hr></td></tr>
-
-        <tr><td><b>j / k</b></td><td>${t.navigation}</td></tr>
-        <tr><td><b>Space</b></td><td>${t.quickLook}</td></tr>
-        <tr><td><b>x</b></td><td>${t.toggle}</td></tr>
-        <tr>
-          <td><b>Enter</b></td>
-          <td>${t.open}</td>
-        </tr>
-        <tr><td><b>t / T</b></td><td>${t.newTab}</td></tr>
-        <tr>
-          <td><b>Esc</b></td>
-          <td>${t.escape}</td>
-        </tr>
-
-        <tr><td colspan="2"><hr></td></tr>
-
-        <tr><td><b>?</b></td><td>${t.help}</td></tr>
-      </table>
+      <header class="zenmine-shortcut-header">
+        <div class="zenmine-shortcut-icon" aria-hidden="true"></div>
+        <div class="zenmine-shortcut-heading">
+          <h2>${t.title}</h2>
+          <p>${t.subtitle}</p>
+        </div>
+        <button type="button" class="zenmine-shortcut-close" aria-label="Close">×</button>
+      </header>
+      <div class="zenmine-shortcut-grid">
+        <section class="zenmine-shortcut-card">
+          <h3>${t.navigationGroup}</h3>
+          <div class="zenmine-shortcut-row"><kbd>h</kbd><span>${t.home}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>m</kbd><span>${t.myPage}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>[</kbd><span>${t.back}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>]</kbd><span>${t.forward}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>^</kbd><span>${t.up}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>n</kbd><span>${t.newIssue}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>/</kbd><span>${t.search}</span></div>
+        </section>
+        <section class="zenmine-shortcut-card">
+          <h3>${t.projectGroup}</h3>
+          <div class="zenmine-shortcut-row"><kbd>p</kbd><span>${t.projectJump}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>i</kbd><span>${t.issueList}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>a</kbd><span>${t.activity}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>w</kbd><span>${t.wiki}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>l</kbd><span>${t.sidebar}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>gg</kbd><span>${t.scrollTop}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>G</kbd><span>${t.scrollBottom}</span></div>
+        </section>
+        <section class="zenmine-shortcut-card">
+          <h3>${t.issueGroup}</h3>
+          <div class="zenmine-shortcut-row"><kbd>r</kbd><span>${t.reply}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>s → a / s / d / f</kbd><span>${t.status}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>o → 1〜9</kbd><span>${t.recent}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>e</kbd><span>${t.edit}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>c</kbd><span>${t.copy}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>Shift + Enter</kbd><span>${t.preview}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>⌘ / Option + Enter</kbd><span>${t.submit}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>ZZ</kbd><span>${t.submit}</span></div>
+        </section>
+        <section class="zenmine-shortcut-card">
+          <h3>${t.selectionGroup}</h3>
+          <div class="zenmine-shortcut-row"><kbd>j / k</kbd><span>${t.navigation}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>Space</kbd><span>${t.quickLook}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>x</kbd><span>${t.toggle}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>Enter</kbd><span>${t.open}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>t / T</kbd><span>${t.newTab}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>Esc</kbd><span>${t.escape}</span></div>
+        </section>
+        <section class="zenmine-shortcut-card zenmine-shortcut-card-small">
+          <h3>${t.otherGroup}</h3>
+          <div class="zenmine-shortcut-row"><kbd>?</kbd><span>${t.help}</span></div>
+        </section>
+        <aside class="zenmine-shortcut-hint">
+          <strong>${t.hintTitle}</strong>
+          <span>${t.hintText}</span>
+        </aside>
+      </div>
     `;
 
     overlay.appendChild(modal);
+    modal.querySelector('.zenmine-shortcut-close').addEventListener('click', closeHelp);
     document.body.appendChild(overlay);
   }
 
@@ -689,7 +725,7 @@
     modal.appendChild(table);
     const footer = document.createElement('div');
     footer.className = 'zenmine-command-palette-footer';
-    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
+    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     filter.addEventListener('input', () => {
       const terms = filter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
