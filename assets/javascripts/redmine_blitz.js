@@ -776,6 +776,22 @@
         }
         return false;
       }
+      if (event.key === 's' || event.key === 'S') {
+        closeRecentPalette();
+        if (openStatusPalette()) event.preventDefault();
+        return true;
+      }
+      if (event.key === 'p' || event.key === 'P') {
+        closeRecentPalette();
+        if (openProjectJump()) event.preventDefault();
+        return true;
+      }
+      if (event.key === '?') {
+        closeRecentPalette();
+        openHelp();
+        event.preventDefault();
+        return true;
+      }
       if (event.key === 'j' || event.key === 'J' || event.key === 'k' || event.key === 'K') {
         movePaletteSelection(recentPalette, '[data-recent-index]', event.key.toLowerCase() === 'j' ? 1 : -1);
         event.preventDefault();
@@ -803,12 +819,34 @@
       if (recentIndex >= 0 && recentRow) {
         recentRow.click();
         event.preventDefault();
+        return true;
+      }
+      if (/^\d$/.test(event.key)) return true;
+      if (event.key.length === 1) {
+        event.preventDefault();
+        closeRecentPalette();
       }
       return true;
     }
 
     if (!statusPalette) return false;
 
+    if (event.key === 'o' || event.key === 'O') {
+      closeStatusPalette();
+      if (openRecentPalette()) event.preventDefault();
+      return true;
+    }
+    if (event.key === 'p' || event.key === 'P') {
+      closeStatusPalette();
+      if (openProjectJump()) event.preventDefault();
+      return true;
+    }
+    if (event.key === '?') {
+      closeStatusPalette();
+      openHelp();
+      event.preventDefault();
+      return true;
+    }
     if (event.key === 'j' || event.key === 'J' || event.key === 'k' || event.key === 'K') {
       movePaletteSelection(statusPalette, '[data-status-index]', event.key.toLowerCase() === 'j' ? 1 : -1);
       event.preventDefault();
@@ -830,11 +868,55 @@
     const statusIndex = statusKeys.indexOf(String(event.key).toLowerCase());
     if (statusIndex >= 0) {
       const button = statusPalette.querySelector('[data-status-index="' + statusIndex + '"]');
-      if (button) button.click();
+      if (button) {
+        button.click();
+      } else {
+        closeStatusPalette();
+      }
       event.preventDefault();
       return true;
     }
 
+    if (event.key.length === 1) {
+      event.preventDefault();
+      closeStatusPalette();
+    }
+    return true;
+  }
+
+  function openProjectJump(toggle = false) {
+    const pj = document.getElementById('project-jump');
+    if (!pj) return false;
+
+    if (toggle) {
+      pj.classList.toggle('expanded');
+    } else if (!pj.classList.contains('expanded')) {
+      pj.classList.add('expanded');
+    }
+    if (!pj.classList.contains('expanded')) return true;
+
+    setTimeout(() => {
+      const input = pj.querySelector('#projects-quick-search');
+      const content = pj.querySelector('.drdn-content');
+      if (!input || !content) return;
+
+      input.focus();
+      input.select?.();
+
+      const trySelect = () => {
+        const links = Array.from(content.querySelectorAll('.drdn-items.projects a'))
+          .filter(a => a.offsetParent !== null);
+        if (links.length === 1) {
+          obs.disconnect();
+          links[0].click();
+        }
+      };
+
+      input.addEventListener('input', () => setTimeout(trySelect, 0), { passive: true });
+      setTimeout(trySelect, 0);
+      const obs = new MutationObserver(() => setTimeout(trySelect, 0));
+      obs.observe(content, { childList: true, subtree: true });
+    }, 0);
     return true;
   }
 
@@ -1045,37 +1127,9 @@
       }
 
       if (key === 'p' || key === 'P') {
-        const pj = document.getElementById('project-jump');
-        if (!pj) return;
-
+        if (!openProjectJump(true)) return;
         e.preventDefault();
         e.stopImmediatePropagation();
-
-        pj.classList.toggle('expanded');
-        if (!pj.classList.contains('expanded')) return;
-
-        setTimeout(() => {
-          const input = pj.querySelector('#projects-quick-search');
-          const content = pj.querySelector('.drdn-content');
-          if (!input || !content) return;
-
-          input.focus();
-          input.select?.();
-
-          const trySelect = () => {
-            const links = Array.from(content.querySelectorAll('.drdn-items.projects a'))
-              .filter(a => a.offsetParent !== null);
-            if (links.length === 1) {
-              obs.disconnect();
-              links[0].click();
-            }
-          };
-
-          input.addEventListener('input', () => setTimeout(trySelect, 0), { passive: true });
-          setTimeout(trySelect, 0);
-          const obs = new MutationObserver(() => setTimeout(trySelect, 0));
-          obs.observe(content, { childList: true, subtree: true });
-        }, 0);
         return;
       }
 
