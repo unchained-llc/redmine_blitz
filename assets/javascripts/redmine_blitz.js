@@ -458,7 +458,7 @@
           <div class="zenmine-shortcut-row"><kbd>Space</kbd><span>${t.quickLook}</span></div>
           <div class="zenmine-shortcut-row"><kbd>x</kbd><span>${t.toggle}</span></div>
           <div class="zenmine-shortcut-row"><kbd>Enter</kbd><span>${t.open}</span></div>
-          <div class="zenmine-shortcut-row"><kbd>t / T</kbd><span>${t.newTab}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>t</kbd><span>${t.newTab}</span></div>
           <div class="zenmine-shortcut-row"><kbd>Esc</kbd><span>${t.escape}</span></div>
         </section>
         <section class="zenmine-shortcut-card zenmine-shortcut-card-small">
@@ -683,12 +683,7 @@
     searchBox.className = 'zenmine-command-palette-search-box';
     const searchIcon = document.createElement('span');
     searchIcon.className = 'zenmine-command-palette-search-icon';
-    const divider = document.createElement('span');
-    divider.className = 'zenmine-command-palette-search-divider';
-    const escapeKey = document.createElement('b');
-    escapeKey.className = 'zenmine-command-palette-escape-key';
-    escapeKey.textContent = 'esc';
-    searchBox.append(searchIcon, filter, divider, escapeKey);
+    searchBox.append(searchIcon, filter);
     modal.appendChild(searchBox);
 
     const table = document.createElement('table');
@@ -735,6 +730,9 @@
       });
       const visibleRows = Array.from(table.querySelectorAll('[data-recent-index]'))
         .filter(row => !row.hidden);
+      visibleRows.forEach((row, visibleIndex) => {
+        row.querySelector('td:first-child b').textContent = String(visibleIndex + 1);
+      });
       setPaletteSelection(recentPalette, '[data-recent-index]', visibleRows.length === 1 ? 0 : -1);
       if (terms.length > 0 && visibleRows.length === 1) visibleRows[0].click();
     });
@@ -769,9 +767,11 @@
         if (event.key === 'Enter') {
           const visibleRows = Array.from(recentPalette.querySelectorAll('[data-recent-index]'))
             .filter(row => !row.hidden);
+          event.preventDefault();
           if (visibleRows.length === 1) {
-            event.preventDefault();
             visibleRows[0].click();
+          } else {
+            event.target.blur();
           }
         }
         return false;
@@ -797,8 +797,10 @@
         return true;
       }
       const recentIndex = Number(event.key) - 1;
-      const recentRow = recentPalette.querySelector('[data-recent-index="' + recentIndex + '"]');
-      if (recentIndex >= 0 && recentRow && !recentRow.hidden) {
+      const visibleRows = Array.from(recentPalette.querySelectorAll('[data-recent-index]'))
+        .filter(row => !row.hidden);
+      const recentRow = visibleRows[recentIndex];
+      if (recentIndex >= 0 && recentRow) {
         recentRow.click();
         event.preventDefault();
       }
