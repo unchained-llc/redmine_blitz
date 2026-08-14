@@ -33,9 +33,10 @@
       body:is(.controller-welcome.action-index, .controller-issues.action-index) #content table.issues > tbody > tr.issue.kbd-selected > td {
         border-radius: 0 !important;
       }
-      body:is(.controller-welcome.action-index, .controller-issues.action-index) #content table.issues > tbody > tr.issue.kbd-selected > td:first-child {
-        border-left: 1px solid transparent !important;
-        box-shadow: inset 5px 0 0 #5ac8a1 !important;
+      body:is(.controller-welcome.action-index, .controller-issues.action-index) #content table.issues > tbody > tr.issue.kbd-selected > td {
+        background-color: #f3f7ff !important;
+        border-left: 0 !important;
+        box-shadow: none !important;
       }
     }
 
