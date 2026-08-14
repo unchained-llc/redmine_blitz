@@ -8,6 +8,7 @@
   let isHelpOpen = false;
   let statusPalette;
   let recentPalette;
+  let searchContextRequest;
 
   const isTyping = (el) =>
     el?.matches?.('input, textarea, select, [contenteditable="true"]');
@@ -587,6 +588,38 @@
       .filter(action => action.label);
   }
 
+  function loadSearchContextMenu() {
+    const rows = getRows('search');
+    const row = rows[searchIndex] || rows[0];
+    const link = row?.querySelector('a[href*="/issues/"]');
+    const issueId = link?.href.match(/\/issues\/(\d+)/)?.[1];
+    if (!issueId || searchContextRequest) return Boolean(issueId);
+
+    searchContextRequest = $.ajax({
+      url: '/issues/context_menu',
+      data: {
+        authenticity_token: document.querySelector('meta[name="csrf-token"]')?.content || '',
+        'ids[]': issueId,
+        back_url: window.location.href,
+        'c[]': ['id', 'status'],
+      },
+      success: data => {
+        let menu = document.getElementById('context-menu');
+        if (!menu) {
+          menu = document.createElement('div');
+          menu.id = 'context-menu';
+          document.body.appendChild(menu);
+        }
+        menu.innerHTML = data;
+        menu.style.display = 'none';
+        searchContextRequest = null;
+        openStatusPalette(10);
+      },
+      error: () => { searchContextRequest = null; },
+    });
+    return true;
+  }
+
   function showNativeContextMenuForSelection() {
     const rows = statusTargetIssueRows();
     if (!rows.length) return false;
@@ -623,13 +656,20 @@
     if (statusPalette) return true;
     if (isIssueList() && !statusTargetIssueRows().length) return false;
 
+    const isSearchStatusTarget = Boolean(isSearchResultPage());
+    if (isSearchStatusTarget && retry === 0) {
+      closeNativeContextMenu();
+      loadSearchContextMenu();
+      return true;
+    }
+
     if (isIssueList() && retry === 0) {
       closeNativeContextMenu();
       showNativeContextMenuForSelection();
     }
 
     const menu = document.getElementById('context-menu');
-    const actions = isIssueList()
+    const actions = (isIssueList() || isSearchStatusTarget)
       ? nativeStatusActions(menu)
       : (() => {
           const field = document.getElementById('issue_status_id');
