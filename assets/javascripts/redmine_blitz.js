@@ -311,7 +311,7 @@
         scrollTop: '最上へスクロール',
         scrollBottom: '最下へスクロール',
         reply: '返信（チケット詳細ページ）',
-        status: 'ステータスを変更（詳細画面 / xで選択したチケット）<br>複数選択時は共通候補のみ',
+        status: 'ステータスを変更（カーソルのチケット / xで選択したチケット）<br>複数選択時は共通候補のみ',
         recent: '最近見たチケットを開く',
         edit: '編集 + 説明編集',
         copy: 'チケットをコピー',
@@ -352,7 +352,7 @@
         scrollTop: 'Scroll to top',
         scrollBottom: 'Scroll to bottom',
         reply: 'Reply (issue detail page)',
-        status: 'Change status (issue detail / x-selected issues)<br>Only common options appear for multiple issues',
+        status: 'Change status (cursor issue / x-selected issues)<br>Only common options appear for multiple issues',
         recent: 'Open recently viewed issues',
         edit: 'Edit issue + description',
         copy: 'Copy issue',
@@ -393,7 +393,7 @@
         scrollTop: 'Défiler vers le haut',
         scrollBottom: 'Défiler vers le bas',
         reply: 'Répondre (page détail)',
-        status: 'Changer le statut (détail / demandes sélectionnées)<br>Options communes uniquement en sélection multiple',
+        status: 'Changer le statut (demande sous le curseur / sélection)<br>Options communes uniquement en sélection multiple',
         recent: 'Ouvrir les demandes récemment consultées',
         edit: 'Éditer + description',
         copy: 'Copier la demande',
@@ -552,6 +552,15 @@
     );
   }
 
+  function statusTargetIssueRows() {
+    const checkedRows = selectedIssueRows();
+    if (checkedRows.length) return checkedRows;
+
+    const rows = getRows('issue');
+    const currentRow = rows[issueIndex];
+    return currentRow ? [currentRow] : [];
+  }
+
   function nativeStatusActions(menu) {
     if (!menu) return [];
 
@@ -578,13 +587,17 @@
   }
 
   function showNativeContextMenuForSelection() {
-    const rows = selectedIssueRows();
+    const rows = statusTargetIssueRows();
     if (!rows.length) return false;
 
     // Redmine's context-menu plugin uses this class as its source of
     // selected issue IDs. Keep the checkbox selection and native selection
     // state in sync before asking Redmine to build the menu.
-    rows.forEach(selectedRow => selectedRow.classList.add('context-menu-selection'));
+    rows.forEach(selectedRow => {
+      selectedRow.classList.add('context-menu-selection');
+      const checkbox = selectedRow.querySelector('input[type="checkbox"]');
+      if (checkbox) checkbox.checked = true;
+    });
 
     const row = issueIndex >= 0 && rows.includes(getRows('issue')[issueIndex])
       ? getRows('issue')[issueIndex]
@@ -607,7 +620,7 @@
 
   function openStatusPalette(retry = 0) {
     if (statusPalette) return true;
-    if (isIssueList() && !selectedIssueRows().length) return false;
+    if (isIssueList() && !statusTargetIssueRows().length) return false;
 
     if (isIssueList() && retry === 0) {
       closeNativeContextMenu();

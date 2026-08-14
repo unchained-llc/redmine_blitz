@@ -67,7 +67,7 @@ Restart your Redmine instance.
 | `j` | Move to next row |
 | `k` | Move to previous row |
 | `x` | Toggle issue selection |
-| `s` | Change status of selected issues using Redmine's common workflow actions (only common statuses are shown) |
+| `s` | Change status of the cursor issue, or selected issues, using Redmine's workflow actions |
 | `Space` | Open / close Quick Look preview |
 | `Enter` | Open issue (bulk edit if 2+ checked) |
 | `t` | Open issue in new tab |
