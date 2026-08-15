@@ -528,6 +528,49 @@
     setPaletteSelection(palette, selector, index);
   }
 
+  function showCopyNotice(text) {
+    document.getElementById('zenmine-copy-notice')?.remove();
+    const notice = document.createElement('div');
+    notice.id = 'zenmine-copy-notice';
+    notice.setAttribute('role', 'status');
+    notice.textContent = `${text} をコピーしました`;
+    notice.style.cssText =
+      'position:fixed;top:24px;right:24px;z-index:100002;padding:12px 18px;border-radius:9px;' +
+      'background:#282b3b;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.22);font-size:14px;font-weight:700';
+    document.body.appendChild(notice);
+    window.setTimeout(() => notice.remove(), 2200);
+  }
+
+  function closeCopyOverlays() {
+    closeStatusPalette();
+    closeRecentPalette();
+    closeNativeContextMenu();
+    document.getElementById('project-jump')?.classList.remove('expanded');
+    if (typeof window.zenmineCloseQuickLook === 'function') window.zenmineCloseQuickLook();
+    document.dispatchEvent(new CustomEvent('zenmine:issue-number-copied'));
+  }
+
+  function copyIssueNumber(issueId, closeOverlays = false) {
+    if (!/^\d+$/.test(String(issueId))) return false;
+    const text = `#${issueId}`;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    } else {
+      const input = document.createElement('textarea');
+      input.value = text;
+      input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+      document.body.appendChild(input);
+      input.select();
+      try { document.execCommand('copy'); } catch (_error) {}
+      input.remove();
+    }
+    if (closeOverlays) closeCopyOverlays();
+    showCopyNotice(text);
+    return true;
+  }
+
+  window.zenmineCopyIssueNumber = copyIssueNumber;
+
   function activatePaletteSelection(palette, selector) {
     const index = Number(palette?.dataset.selectedIndex);
     if (!Number.isInteger(index) || index < 0) return false;
@@ -590,17 +633,33 @@
     return currentRow ? [currentRow] : [];
   }
 
-  function statusTargetIssueInfo() {
+  function statusTargetIssueInfos() {
+    const detailIssueId = window.location.pathname.match(/^\/issues\/(\d+)\/?$/)?.[1];
+    if (detailIssueId) {
+      const subject = document.querySelector(
+        '#content > .issue.details .subject[data-sticky-issue-header-target="original"] h3, #content > .issue.details .subject h3'
+      )?.textContent.trim();
+      return [{
+        issueId: detailIssueId,
+        subject,
+        badge: document.querySelector('#content > h2.inline-block .issue-number')
+      }];
+    }
+
     const rows = isSearchResultPage()
       ? getRows('search').slice(searchIndex >= 0 ? searchIndex : 0, (searchIndex >= 0 ? searchIndex : 0) + 1)
       : statusTargetIssueRows();
-    if (rows.length !== 1) return null;
+    return rows.map(row => {
+      const link = row.querySelector('td.subject a') || row.querySelector('a[href*="/issues/"]');
+      const issueId = link?.href.match(/\/issues\/(\d+)/)?.[1];
+      const badge = row.querySelector('td.id > a, td.id a');
+      return issueId ? { issueId, subject: link.textContent.trim(), badge } : null;
+    }).filter(Boolean);
+  }
 
-    const row = rows[0];
-    const link = row.querySelector('td.subject a') || row.querySelector('a[href*="/issues/"]');
-    const issueId = link?.href.match(/\/issues\/(\d+)/)?.[1];
-    if (!issueId) return null;
-    return { issueId, subject: link.textContent.trim() };
+  function statusTargetIssueInfo() {
+    const targets = statusTargetIssueInfos();
+    return targets.length === 1 ? targets[0] : null;
   }
 
   function nativeStatusActions(menu) {
@@ -628,7 +687,7 @@
       .filter(action => action.label);
   }
 
-  function loadSearchContextMenu(issueId, issueSubject) {
+  function loadSearchContextMenu(issueId, issueSubject, issueBadge) {
     if (!issueId) {
       const target = statusTargetIssueInfo();
       issueId = target?.issueId;
@@ -654,7 +713,7 @@
         menu.innerHTML = data;
         menu.style.display = 'none';
         searchContextRequest = null;
-        openStatusPalette(10, issueId, issueSubject);
+        openStatusPalette(10, issueId, issueSubject, issueBadge);
       },
       error: () => { searchContextRequest = null; },
     });
@@ -665,9 +724,14 @@
     const rows = statusTargetIssueRows();
     if (!rows.length) return false;
 
-    // Redmine's context-menu plugin uses this class as its source of
-    // selected issue IDs. Keep the checkbox selection and native selection
-    // state in sync before asking Redmine to build the menu.
+    // Redmine serializes the form synchronously while handling contextmenu.
+    // Temporarily select the target rows for that request, then restore the
+    // visible checkbox and row-selection state before the next paint.
+    const selectionState = Array.from(document.querySelectorAll('.hascontextmenu')).map(candidate => ({
+      row: candidate,
+      selected: candidate.classList.contains('context-menu-selection'),
+      checked: candidate.querySelector('input[type="checkbox"]')?.checked
+    }));
     rows.forEach(selectedRow => {
       selectedRow.classList.add('context-menu-selection');
       const checkbox = selectedRow.querySelector('input[type="checkbox"]');
@@ -684,6 +748,11 @@
       clientY: Math.round(window.innerHeight / 2),
     });
     row.dispatchEvent(event);
+    selectionState.forEach(state => {
+      state.row.classList.toggle('context-menu-selection', state.selected);
+      const checkbox = state.row.querySelector('input[type="checkbox"]');
+      if (checkbox && state.checked !== undefined) checkbox.checked = state.checked;
+    });
     return true;
   }
 
@@ -693,14 +762,14 @@
     action.activate();
   }
 
-  function openStatusPalette(retry = 0, issueId, issueSubject) {
+  function openStatusPalette(retry = 0, issueId, issueSubject, issueBadge) {
     if (statusPalette) return true;
     if (isIssueList() && !issueId && !statusTargetIssueRows().length) return false;
 
     const isSearchStatusTarget = Boolean(isSearchResultPage() || issueId);
     if (isSearchStatusTarget && retry === 0) {
       closeNativeContextMenu();
-      loadSearchContextMenu(issueId, issueSubject);
+      loadSearchContextMenu(issueId, issueSubject, issueBadge);
       return true;
     }
 
@@ -764,14 +833,44 @@
     title.textContent = 'ステータスを変更';
     title.style.cssText = 'margin:0 0 12px;font-size:18px';
     modal.appendChild(title);
-    const targetInfo = issueId
-      ? { issueId, subject: issueSubject || recentIssueSubject(issueId) }
-      : statusTargetIssueInfo();
-    if (targetInfo) {
-      const target = document.createElement('p');
+    const targetInfos = issueId
+      ? [{ issueId, subject: issueSubject || recentIssueSubject(issueId), badge: issueBadge }]
+      : statusTargetIssueInfos();
+    if (targetInfos.length) {
+      if (targetInfos.length === 1) statusPalette.dataset.issueId = targetInfos[0].issueId;
+      const target = document.createElement('div');
       target.className = 'zenmine-command-palette-target';
-      target.textContent = `#${targetInfo.issueId}${targetInfo.subject ? ` — ${targetInfo.subject}` : ''}`;
-      target.style.cssText = 'margin:-4px 0 14px;color:#555;font-size:14px;font-weight:600';
+      target.style.cssText = 'display:grid;max-height:180px;gap:4px;margin:-4px 0 14px;overflow:auto;color:#555;font-size:14px;font-weight:600';
+      targetInfos.forEach(targetInfo => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display:flex;min-width:0;align-items:center;gap:8px;line-height:1.5';
+        const number = targetInfo.badge
+          ? targetInfo.badge.cloneNode(true)
+          : document.createElement('strong');
+        const sourceStyle = targetInfo.badge ? window.getComputedStyle(targetInfo.badge) : null;
+        const background = targetInfo.badge?.style.background || sourceStyle?.backgroundColor || '#43a657';
+        const color = targetInfo.badge?.style.color || sourceStyle?.color || '#fff';
+        const shadow = targetInfo.badge?.style.boxShadow || sourceStyle?.boxShadow || '0 2px 6px rgba(0,0,0,.16)';
+        number.removeAttribute('id');
+        number.removeAttribute('href');
+        number.classList.add('zenmine-command-palette-issue-badge');
+        number.textContent = `#${targetInfo.issueId}`;
+        number.style.display = 'inline-flex';
+        number.style.flex = '0 0 auto';
+        number.style.alignItems = 'center';
+        number.style.minHeight = '24px';
+        number.style.padding = '3px 8px';
+        number.style.borderRadius = '6px';
+        number.style.lineHeight = '1';
+        number.style.background = background;
+        number.style.color = color;
+        number.style.boxShadow = shadow;
+        const subject = document.createElement('span');
+        subject.textContent = targetInfo.subject || '（件名なし）';
+        subject.style.cssText = 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        item.append(number, subject);
+        target.appendChild(item);
+      });
       modal.appendChild(target);
     }
 
@@ -779,7 +878,7 @@
     hint.className = 'zenmine-command-palette-hint';
     hint.textContent = unavailable
       ? '選択したチケットに共通して変更できるステータスがありません。'
-      : 'J / Kで移動、Enterで選択。A / S / D / Fでも選択できます。Escで閉じます。';
+      : 'J / Kで移動、Cで番号をコピー、Enterで選択。A / S / D / Fでも選択できます。Escで閉じます。';
     hint.style.cssText = unavailable
       ? 'display:block !important;margin:0 0 12px;color:#555;line-height:1.7'
       : 'margin:0 0 12px;color:#555';
@@ -829,7 +928,7 @@
     footer.className = 'zenmine-command-palette-footer';
     footer.innerHTML = unavailable
       ? '<span><b>esc</b> 閉じる</span>'
-      : '<span><b>↑ K</b><b>↓ J</b></span><span><b>↵</b> 選択</span><span><b>esc</b> 閉じる</span>';
+      : '<span><b>↑ K</b><b>↓ J</b></span><span><b>C</b> 番号をコピー</span><span><b>↵</b> 選択</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     statusPalette.appendChild(modal);
     document.body.appendChild(statusPalette);
@@ -837,8 +936,8 @@
     return true;
   }
 
-  window.zenmineOpenStatusPalette = function(issueId, issueSubject) {
-    return openStatusPalette(0, issueId, issueSubject);
+  window.zenmineOpenStatusPalette = function(issueId, issueSubject, issueBadge) {
+    return openStatusPalette(0, issueId, issueSubject, issueBadge);
   };
 
   function openRecentPalette() {
@@ -882,7 +981,7 @@
 
     const hint = document.createElement('p');
     hint.className = 'zenmine-command-palette-hint';
-    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Sでステータス変更、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
+    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Sでステータス変更、Cで番号をコピー、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
     hint.style.cssText = 'margin:0 0 12px;color:#555';
     modal.appendChild(hint);
 
@@ -954,7 +1053,7 @@
     modal.appendChild(table);
     const footer = document.createElement('div');
     footer.className = 'zenmine-command-palette-footer';
-    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>S</b> ステータス</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
+    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>S</b> ステータス</span><span><b>C</b> 番号をコピー</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     filter.addEventListener('input', () => {
       const terms = filter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -1017,6 +1116,10 @@
       if (event.key === 's' || event.key === 'S') {
         const issueId = selectedRecentIssueId();
         if (openStatusPalette(0, issueId)) event.preventDefault();
+        return true;
+      }
+      if (event.key === 'c' || event.key === 'C') {
+        if (copyIssueNumber(selectedRecentIssueId(), true)) event.preventDefault();
         return true;
       }
       if (event.key === 'p' || event.key === 'P') {
@@ -1111,6 +1214,10 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       closeStatusPalette();
+      return true;
+    }
+    if (event.key === 'c' || event.key === 'C') {
+      if (copyIssueNumber(statusPalette.dataset.issueId, true)) event.preventDefault();
       return true;
     }
 
@@ -1240,9 +1347,16 @@
       }
 
       if (key === 'c' || key === 'C') {
-        e.preventDefault();
+        const issueId = statusTargetIssueInfo()?.issueId || window.location.pathname.match(/^\/issues\/(\d+)\/?$/)?.[1];
+        if (copyIssueNumber(issueId)) {
+          e.preventDefault();
+          return;
+        }
         const btn = document.querySelector('a.icon.icon-copy, a.icon-copy, a[href$="/copy"]');
-        if (btn) click(btn);
+        if (btn) {
+          e.preventDefault();
+          click(btn);
+        }
         return;
       }
 
