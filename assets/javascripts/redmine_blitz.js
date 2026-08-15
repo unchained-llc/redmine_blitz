@@ -819,6 +819,7 @@
     recentPalette.setAttribute('role', 'dialog');
     recentPalette.setAttribute('aria-modal', 'true');
     recentPalette.setAttribute('aria-label', '最近見たチケット');
+    recentPalette.tabIndex = -1;
     recentPalette.style.cssText =
       'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;' +
       'align-items:center;justify-content:center';
@@ -932,6 +933,7 @@
     recentPalette.appendChild(modal);
     document.body.appendChild(recentPalette);
     setPaletteSelection(recentPalette, '[data-recent-index]', 0);
+    recentPalette.focus();
     return true;
   }
 
@@ -987,9 +989,14 @@
         event.preventDefault();
         return true;
       }
-      if ((event.key === ' ' || event.key === 'Spacebar' || event.code === 'Space') && previewRecentPaletteSelection()) {
+      if (event.key === ' ' || event.key === 'Spacebar' || event.code === 'Space') {
         event.preventDefault();
         event.stopImmediatePropagation();
+        if (document.body.classList.contains('zenmine-quick-look-open') && typeof window.zenmineCloseQuickLook === 'function') {
+          window.zenmineCloseQuickLook();
+        } else {
+          previewRecentPaletteSelection();
+        }
         return true;
       }
       if (event.key === 'Enter') {
