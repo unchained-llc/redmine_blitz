@@ -598,10 +598,14 @@
     return true;
   }
 
-  function selectedRecentIssueId() {
+  function selectedRecentIssueRow() {
     const index = Number(recentPalette?.dataset.selectedIndex);
     return Array.from(recentPalette?.querySelectorAll('[data-recent-index]') || [])
-      .filter(candidate => !candidate.hidden)[index]?.dataset.issueId;
+      .filter(candidate => !candidate.hidden)[index];
+  }
+
+  function selectedRecentIssueId() {
+    return selectedRecentIssueRow()?.dataset.issueId;
   }
 
   function recentIssueSubject(issueId) {
@@ -1152,7 +1156,8 @@
       }
       if (event.key === 's' || event.key === 'S') {
         const issueId = selectedRecentIssueId();
-        if (openStatusPalette(0, issueId)) event.preventDefault();
+        const issueBadge = selectedRecentIssueRow()?.querySelector('.zenmine-command-palette-issue-badge');
+        if (openStatusPalette(0, issueId, undefined, issueBadge)) event.preventDefault();
         return true;
       }
       if (event.key === 'c' || event.key === 'C') {
