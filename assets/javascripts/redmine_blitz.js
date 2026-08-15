@@ -984,6 +984,9 @@
   function handleStatusPaletteKey(event) {
     if (recentPalette && !statusPalette) {
       if (event.key === 'Escape') {
+        // QuickLook closes before the recent-issues palette in the modal stack.
+        if (document.body.classList.contains('zenmine-quick-look-open') && !event.defaultPrevented) return false;
+        if (event.defaultPrevented) return true;
         event.preventDefault();
         closeRecentPalette();
         return true;
