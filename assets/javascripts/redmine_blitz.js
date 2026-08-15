@@ -538,14 +538,30 @@
     return true;
   }
 
-  function previewRecentPaletteSelection(toggle = true) {
+  function selectedRecentIssueId() {
     const index = Number(recentPalette?.dataset.selectedIndex);
-    const row = Array.from(recentPalette?.querySelectorAll('[data-recent-index]') || [])
-      .filter(candidate => !candidate.hidden)[index];
-    if (!row?.dataset.issueId || typeof window.zenmineQuickLookIssue !== 'function') return false;
+    return Array.from(recentPalette?.querySelectorAll('[data-recent-index]') || [])
+      .filter(candidate => !candidate.hidden)[index]?.dataset.issueId;
+  }
+
+  function recentIssueSubject(issueId) {
+    try {
+      const issue = JSON.parse(localStorage.getItem('recentIssues') || '[]')
+        .find(candidate => String(candidate?.ID) === String(issueId));
+      return String(issue?.Str || '')
+        .replace(new RegExp(`^#${issueId}\\s*[:：]?\\s*`), '')
+        .trim();
+    } catch (_error) {
+      return '';
+    }
+  }
+
+  function previewRecentPaletteSelection(toggle = true) {
+    const issueId = selectedRecentIssueId();
+    if (!issueId || typeof window.zenmineQuickLookIssue !== 'function') return false;
 
     const issueLink = document.createElement('a');
-    issueLink.href = `/issues/${row.dataset.issueId}`;
+    issueLink.href = `/issues/${issueId}`;
     return window.zenmineQuickLookIssue(issueLink, toggle);
   }
 
@@ -599,11 +615,13 @@
       .filter(action => action.label);
   }
 
-  function loadSearchContextMenu() {
-    const rows = getRows('search');
-    const row = rows[searchIndex] || rows[0];
-    const link = row?.querySelector('a[href*="/issues/"]');
-    const issueId = link?.href.match(/\/issues\/(\d+)/)?.[1];
+  function loadSearchContextMenu(issueId) {
+    if (!issueId) {
+      const rows = getRows('search');
+      const row = rows[searchIndex] || rows[0];
+      const link = row?.querySelector('a[href*="/issues/"]');
+      issueId = link?.href.match(/\/issues\/(\d+)/)?.[1];
+    }
     if (!issueId || searchContextRequest) return Boolean(issueId);
 
     searchContextRequest = $.ajax({
@@ -624,7 +642,7 @@
         menu.innerHTML = data;
         menu.style.display = 'none';
         searchContextRequest = null;
-        openStatusPalette(10);
+        openStatusPalette(10, issueId);
       },
       error: () => { searchContextRequest = null; },
     });
@@ -663,14 +681,14 @@
     action.activate();
   }
 
-  function openStatusPalette(retry = 0) {
+  function openStatusPalette(retry = 0, issueId) {
     if (statusPalette) return true;
-    if (isIssueList() && !statusTargetIssueRows().length) return false;
+    if (isIssueList() && !issueId && !statusTargetIssueRows().length) return false;
 
-    const isSearchStatusTarget = Boolean(isSearchResultPage());
+    const isSearchStatusTarget = Boolean(isSearchResultPage() || issueId);
     if (isSearchStatusTarget && retry === 0) {
       closeNativeContextMenu();
-      loadSearchContextMenu();
+      loadSearchContextMenu(issueId);
       return true;
     }
 
@@ -720,7 +738,7 @@
     statusPalette.setAttribute('aria-modal', 'true');
     statusPalette.setAttribute('aria-label', 'ステータスを変更');
     statusPalette.style.cssText =
-      'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;' +
+      'position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.55);display:flex;' +
       'align-items:center;justify-content:center';
 
     const modal = document.createElement('div');
@@ -734,6 +752,14 @@
     title.textContent = 'ステータスを変更';
     title.style.cssText = 'margin:0 0 12px;font-size:18px';
     modal.appendChild(title);
+    if (issueId) {
+      const target = document.createElement('p');
+      const subject = recentIssueSubject(issueId);
+      target.className = 'zenmine-command-palette-target';
+      target.textContent = `#${issueId}${subject ? ` — ${subject}` : ''}`;
+      target.style.cssText = 'margin:-4px 0 14px;color:#555;font-size:14px;font-weight:600';
+      modal.appendChild(target);
+    }
 
     const hint = document.createElement('p');
     hint.className = 'zenmine-command-palette-hint';
@@ -796,6 +822,10 @@
     setPaletteSelection(statusPalette, '[data-status-index]', 0);
     return true;
   }
+
+  window.zenmineOpenStatusPalette = function(issueId) {
+    return openStatusPalette(0, issueId);
+  };
 
   function openRecentPalette() {
     if (recentPalette) return true;
@@ -938,7 +968,7 @@
   }
 
   function handleStatusPaletteKey(event) {
-    if (recentPalette) {
+    if (recentPalette && !statusPalette) {
       if (event.key === 'Escape') {
         event.preventDefault();
         closeRecentPalette();
@@ -968,8 +998,8 @@
         return false;
       }
       if (event.key === 's' || event.key === 'S') {
-        closeRecentPalette();
-        if (openStatusPalette()) event.preventDefault();
+        const issueId = selectedRecentIssueId();
+        if (openStatusPalette(0, issueId)) event.preventDefault();
         return true;
       }
       if (event.key === 'p' || event.key === 'P') {
@@ -1062,6 +1092,7 @@
 
     if (event.key === 'Escape') {
       event.preventDefault();
+      event.stopImmediatePropagation();
       closeStatusPalette();
       return true;
     }
