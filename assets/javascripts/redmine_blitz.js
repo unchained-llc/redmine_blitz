@@ -882,7 +882,7 @@
 
     const hint = document.createElement('p');
     hint.className = 'zenmine-command-palette-hint';
-    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
+    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Sでステータス変更、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
     hint.style.cssText = 'margin:0 0 12px;color:#555';
     modal.appendChild(hint);
 
@@ -954,7 +954,7 @@
     modal.appendChild(table);
     const footer = document.createElement('div');
     footer.className = 'zenmine-command-palette-footer';
-    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
+    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>S</b> ステータス</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     filter.addEventListener('input', () => {
       const terms = filter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
