@@ -599,6 +599,25 @@
     }
   }
 
+  function applyRecentIssueTracker(badge, trackerId) {
+    badge.className = `zenmine-command-palette-issue-badge tracker-${trackerId || '5'}`;
+  }
+
+  function hydrateRecentIssueTracker(issue, badge, issues) {
+    if (issue.Tracker || !issue.ID) return;
+    fetch(`/issues/${issue.ID}`, { credentials: 'same-origin' })
+      .then(response => response.ok ? response.text() : '')
+      .then(html => {
+        const trackerId = (new DOMParser().parseFromString(html, 'text/html')
+          .querySelector('#content .issue.details')?.className.match(/tracker-(\d+)/) || [])[1];
+        if (!trackerId) return;
+        issue.Tracker = trackerId;
+        localStorage.setItem('recentIssues', JSON.stringify(issues));
+        applyRecentIssueTracker(badge, trackerId);
+      })
+      .catch(() => {});
+  }
+
   function previewRecentPaletteSelection(toggle = true) {
     const issueId = selectedRecentIssueId();
     if (!issueId || typeof window.zenmineQuickLookIssue !== 'function') return false;
@@ -1025,12 +1044,13 @@
         .replace(new RegExp(`^${issueNumber.replace('#', '\\#')}\\s*[:：]?\\s*`), '')
         .trim();
       const numberBadge = document.createElement('span');
-      numberBadge.className = 'zenmine-command-palette-issue-badge';
+      applyRecentIssueTracker(numberBadge, issue.Tracker);
       numberBadge.textContent = issueNumber;
       numberBadge.style.cssText =
         'display:inline-flex;align-items:center;margin-right:18px;padding:8px 14px;border-radius:7px;' +
-        'background:#43a657;box-shadow:0 3px 8px rgba(67,166,87,.24);color:#fff;font-weight:700;line-height:1';
+        'box-shadow:0 3px 8px rgba(0,0,0,.18);color:#fff;font-weight:700;line-height:1';
       label.appendChild(numberBadge);
+      hydrateRecentIssueTracker(issue, numberBadge, issues);
       if (subject) {
         const subjectLabel = document.createElement('span');
         subjectLabel.className = 'zenmine-command-palette-issue-subject';
