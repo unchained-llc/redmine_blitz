@@ -747,7 +747,11 @@
 
       const key = document.createElement('td');
       const keyLabel = document.createElement('b');
+      keyLabel.className = 'zenmine-command-palette-key-badge';
       keyLabel.textContent = statusKeys[index];
+      keyLabel.style.cssText =
+        'display:inline-flex;min-width:38px;height:38px;box-sizing:border-box;align-items:center;justify-content:center;' +
+        'border-radius:10px;background:#f1efff;color:#6255db;font-size:16px;font-weight:700;line-height:1';
       key.appendChild(keyLabel);
 
       const label = document.createElement('td');
@@ -852,11 +856,32 @@
 
       const key = document.createElement('td');
       const keyLabel = document.createElement('b');
+      keyLabel.className = 'zenmine-command-palette-key-badge';
       keyLabel.textContent = String(index + 1);
+      keyLabel.style.cssText =
+        'display:inline-flex;min-width:38px;height:38px;box-sizing:border-box;align-items:center;justify-content:center;' +
+        'border-radius:10px;background:#f1efff;color:#6255db;font-size:16px;font-weight:700;line-height:1';
       key.appendChild(keyLabel);
 
       const label = document.createElement('td');
-      label.textContent = issue.Str || `#${issue.ID}`;
+      const issueNumber = `#${issue.ID}`;
+      const storedLabel = String(issue.Str || '').trim();
+      const subject = storedLabel
+        .replace(new RegExp(`^${issueNumber.replace('#', '\\#')}\\s*[:：]?\\s*`), '')
+        .trim();
+      const numberBadge = document.createElement('span');
+      numberBadge.className = 'zenmine-command-palette-issue-badge';
+      numberBadge.textContent = issueNumber;
+      numberBadge.style.cssText =
+        'display:inline-flex;align-items:center;margin-right:18px;padding:8px 14px;border-radius:7px;' +
+        'background:#43a657;box-shadow:0 3px 8px rgba(67,166,87,.24);color:#fff;font-weight:700;line-height:1';
+      label.appendChild(numberBadge);
+      if (subject) {
+        const subjectLabel = document.createElement('span');
+        subjectLabel.className = 'zenmine-command-palette-issue-subject';
+        subjectLabel.textContent = subject;
+        label.appendChild(subjectLabel);
+      }
       const action = document.createElement('td');
       action.className = 'zenmine-command-palette-row-action';
       action.textContent = '↵';
