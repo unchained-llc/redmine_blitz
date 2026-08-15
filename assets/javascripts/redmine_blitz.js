@@ -533,10 +533,27 @@
     const notice = document.createElement('div');
     notice.id = 'zenmine-copy-notice';
     notice.setAttribute('role', 'status');
-    notice.textContent = `${text} をコピーしました`;
     notice.style.cssText =
-      'position:fixed;top:24px;right:24px;z-index:100002;padding:12px 18px;border-radius:9px;' +
-      'background:#282b3b;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.22);font-size:14px;font-weight:700';
+      'position:fixed;top:118px;left:50%;z-index:100002;display:flex;min-height:48px;box-sizing:border-box;' +
+      'align-items:center;gap:12px;min-width:280px;padding:9px 14px 9px 12px;border:1px solid #d8eade;' +
+      'border-radius:12px;background:#f3faf5;box-shadow:0 2px 10px rgba(25,55,38,.06);' +
+      'color:#2d4033;font-size:14px;font-weight:700;transform:translateX(-50%)';
+    const icon = document.createElement('span');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '✓';
+    icon.style.cssText =
+      'display:inline-flex;flex:0 0 30px;width:30px;height:30px;box-sizing:border-box;align-items:center;justify-content:center;' +
+      'border-radius:50%;background:#4fa967;color:#fff;font-size:20px;font-weight:800;line-height:1';
+    const label = document.createElement('span');
+    label.textContent = `${text} をコピーしました`;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.setAttribute('aria-label', '通知を閉じる');
+    close.textContent = '×';
+    close.style.cssText =
+      'margin-left:auto;padding:0;border:0;background:transparent;color:#718078;font-size:22px;line-height:1;cursor:pointer';
+    close.addEventListener('click', () => notice.remove());
+    notice.append(icon, label, close);
     document.body.appendChild(notice);
     window.setTimeout(() => notice.remove(), 2200);
   }
