@@ -316,7 +316,7 @@
         status: 'ステータスを変更（カーソルのチケット / xで選択したチケット）<br>複数選択時は共通候補のみ',
         recent: '最近見たチケットを開く',
         edit: '編集 + 説明編集',
-        copy: 'チケット番号をコピー',
+        copy: '選択したチケット番号をコピー',
         preview: 'プレビュー切替',
         submit: '送信（フォーム）',
         navigation: '選択移動（チケット / 検索結果）<br>チケット詳細ではスクロール',
@@ -357,7 +357,7 @@
         status: 'Change status (cursor issue / x-selected issues)<br>Only common options appear for multiple issues',
         recent: 'Open recently viewed issues',
         edit: 'Edit issue + description',
-        copy: 'Copy issue number',
+        copy: 'Copy selected issue number(s)',
         preview: 'Toggle Edit/Preview',
         submit: 'Submit form',
         navigation: 'Navigate (issues / search results)<br>Scroll on issue detail pages',
@@ -398,7 +398,7 @@
         status: 'Changer le statut (demande sous le curseur / sélection)<br>Options communes uniquement en sélection multiple',
         recent: 'Ouvrir les demandes récemment consultées',
         edit: 'Éditer + description',
-        copy: 'Copier le numéro de la demande',
+        copy: 'Copier le(s) numéro(s) sélectionné(s)',
         preview: 'Basculer Édition/Aperçu',
         submit: 'Soumettre le formulaire',
         navigation: 'Naviguer (demandes / résultats)<br>Défiler sur les pages de détail',
@@ -567,9 +567,11 @@
     document.dispatchEvent(new CustomEvent('zenmine:issue-number-copied'));
   }
 
-  function copyIssueNumber(issueId, closeOverlays = false) {
-    if (!/^\d+$/.test(String(issueId))) return false;
-    const text = `#${issueId}`;
+  function copyIssueNumbers(issueIds, closeOverlays = false) {
+    const ids = Array.from(new Set(issueIds.map(String).filter(id => /^\d+$/.test(id))));
+    if (!ids.length) return false;
+
+    const text = ids.map(id => `#${id}`).join('\n');
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).catch(() => {});
     } else {
@@ -582,8 +584,12 @@
       input.remove();
     }
     if (closeOverlays) closeCopyOverlays();
-    showCopyNotice(text);
+    showCopyNotice(ids.length === 1 ? text : `${ids.length}件のチケット番号`);
     return true;
+  }
+
+  function copyIssueNumber(issueId, closeOverlays = false) {
+    return copyIssueNumbers([issueId], closeOverlays);
   }
 
   window.zenmineCopyIssueNumber = copyIssueNumber;
@@ -1388,8 +1394,8 @@
       }
 
       if (key === 'c' || key === 'C') {
-        const issueId = statusTargetIssueInfo()?.issueId || window.location.pathname.match(/^\/issues\/(\d+)\/?$/)?.[1];
-        if (copyIssueNumber(issueId)) {
+        const issueIds = statusTargetIssueInfos().map(target => target.issueId);
+        if (copyIssueNumbers(issueIds)) {
           e.preventDefault();
           return;
         }
