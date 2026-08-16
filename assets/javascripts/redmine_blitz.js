@@ -316,7 +316,7 @@
         status: 'ステータスを変更（カーソルのチケット / xで選択したチケット）<br>複数選択時は共通候補のみ',
         recent: '最近見たチケットを開く',
         edit: '編集 + 説明編集',
-        copy: 'チケットをコピー',
+        copy: 'チケット番号をコピー',
         preview: 'プレビュー切替',
         submit: '送信（フォーム）',
         navigation: '選択移動（チケット / 検索結果）<br>チケット詳細ではスクロール',
@@ -357,7 +357,7 @@
         status: 'Change status (cursor issue / x-selected issues)<br>Only common options appear for multiple issues',
         recent: 'Open recently viewed issues',
         edit: 'Edit issue + description',
-        copy: 'Copy issue',
+        copy: 'Copy issue number',
         preview: 'Toggle Edit/Preview',
         submit: 'Submit form',
         navigation: 'Navigate (issues / search results)<br>Scroll on issue detail pages',
@@ -398,7 +398,7 @@
         status: 'Changer le statut (demande sous le curseur / sélection)<br>Options communes uniquement en sélection multiple',
         recent: 'Ouvrir les demandes récemment consultées',
         edit: 'Éditer + description',
-        copy: 'Copier la demande',
+        copy: 'Copier le numéro de la demande',
         preview: 'Basculer Édition/Aperçu',
         submit: 'Soumettre le formulaire',
         navigation: 'Naviguer (demandes / résultats)<br>Défiler sur les pages de détail',
@@ -1107,8 +1107,7 @@
       visibleRows.forEach((row, visibleIndex) => {
         row.querySelector('td:first-child b').textContent = String(visibleIndex + 1);
       });
-      setPaletteSelection(recentPalette, '[data-recent-index]', visibleRows.length === 1 ? 0 : -1);
-      if (terms.length > 0 && visibleRows.length === 1) visibleRows[0].click();
+      setPaletteSelection(recentPalette, '[data-recent-index]', -1);
     });
 
     recentPalette.addEventListener('click', event => {
@@ -1161,7 +1160,7 @@
         return true;
       }
       if (event.key === 'c' || event.key === 'C') {
-        if (copyIssueNumber(selectedRecentIssueId(), true)) event.preventDefault();
+        if (copyIssueNumber(selectedRecentIssueId())) event.preventDefault();
         return true;
       }
       if (event.key === 'p' || event.key === 'P') {
@@ -1259,7 +1258,7 @@
       return true;
     }
     if (event.key === 'c' || event.key === 'C') {
-      if (copyIssueNumber(statusPalette.dataset.issueId, true)) event.preventDefault();
+      if (copyIssueNumber(statusPalette.dataset.issueId)) event.preventDefault();
       return true;
     }
 
