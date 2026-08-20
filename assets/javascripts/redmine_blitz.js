@@ -886,10 +886,10 @@
       if (targetInfos.length === 1) statusPalette.dataset.issueId = targetInfos[0].issueId;
       const target = document.createElement('div');
       target.className = 'zenmine-command-palette-target';
-      target.style.cssText = 'display:grid;max-height:180px;gap:4px;margin:-4px 0 14px;overflow:auto;color:#555;font-size:14px;font-weight:600';
+      target.style.cssText = 'display:grid;max-height:180px;gap:8px;margin:-2px 0 16px;overflow:auto;color:#555;font-size:14px;font-weight:600';
       targetInfos.forEach(targetInfo => {
         const item = document.createElement('div');
-        item.style.cssText = 'display:flex;min-width:0;align-items:center;gap:8px;line-height:1.5';
+        item.style.cssText = 'display:flex;min-width:0;align-items:center;gap:10px;line-height:1.65';
         const number = targetInfo.badge
           ? targetInfo.badge.cloneNode(true)
           : document.createElement('strong');
