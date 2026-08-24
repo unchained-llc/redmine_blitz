@@ -288,7 +288,7 @@
     const i18n = {
       ja: {
         title: 'キーボードショートカット',
-        subtitle: 'W.A.Cをより速く、快適に操作するためのショートカット一覧です。',
+        subtitle: 'WACをより速く、快適に操作するためのショートカット一覧です',
         navigationGroup: 'ナビゲーション',
         projectGroup: 'チケット・プロジェクト',
         issueGroup: 'チケット操作',
