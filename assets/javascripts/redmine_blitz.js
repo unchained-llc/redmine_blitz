@@ -316,7 +316,8 @@
         status: 'ステータスを変更（カーソルのチケット / xで選択したチケット）<br>複数選択時は共通候補のみ',
         recent: '最近見たチケットを開く',
         edit: '編集 + 説明編集',
-        copy: '選択したチケット番号をコピー',
+        copyNumber: 'チケット番号をコピー',
+        copyTitle: 'タイトル #番号をコピー',
         preview: 'プレビュー切替',
         submit: '送信（フォーム）',
         navigation: '選択移動（チケット / 検索結果）<br>チケット詳細ではスクロール',
@@ -357,7 +358,8 @@
         status: 'Change status (cursor issue / x-selected issues)<br>Only common options appear for multiple issues',
         recent: 'Open recently viewed issues',
         edit: 'Edit issue + description',
-        copy: 'Copy selected issue number(s)',
+        copyNumber: 'Copy issue number(s) only',
+        copyTitle: 'Copy title followed by #number',
         preview: 'Toggle Edit/Preview',
         submit: 'Submit form',
         navigation: 'Navigate (issues / search results)<br>Scroll on issue detail pages',
@@ -398,7 +400,8 @@
         status: 'Changer le statut (demande sous le curseur / sélection)<br>Options communes uniquement en sélection multiple',
         recent: 'Ouvrir les demandes récemment consultées',
         edit: 'Éditer + description',
-        copy: 'Copier le(s) numéro(s) sélectionné(s)',
+        copyNumber: 'Copier uniquement le(s) numéro(s)',
+        copyTitle: 'Copier le titre suivi du #numéro',
         preview: 'Basculer Édition/Aperçu',
         submit: 'Soumettre le formulaire',
         navigation: 'Naviguer (demandes / résultats)<br>Défiler sur les pages de détail',
@@ -449,7 +452,8 @@
           <div class="zenmine-shortcut-row"><kbd>s → a / s / d / f</kbd><span>${t.status}</span></div>
           <div class="zenmine-shortcut-row"><kbd>o → 1〜9</kbd><span>${t.recent}</span></div>
           <div class="zenmine-shortcut-row"><kbd>e</kbd><span>${t.edit}</span></div>
-          <div class="zenmine-shortcut-row"><kbd>c</kbd><span>${t.copy}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>c</kbd><span>${t.copyNumber}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>C</kbd><span>${t.copyTitle}</span></div>
           <div class="zenmine-shortcut-row"><kbd>Shift + Enter</kbd><span>${t.preview}</span></div>
           <div class="zenmine-shortcut-row"><kbd>⌘ / Option + Enter</kbd><span>${t.submit}</span></div>
           <div class="zenmine-shortcut-row"><kbd>ZZ</kbd><span>${t.submit}</span></div>
@@ -567,11 +571,9 @@
     document.dispatchEvent(new CustomEvent('zenmine:issue-number-copied'));
   }
 
-  function copyIssueNumbers(issueIds, closeOverlays = false) {
-    const ids = Array.from(new Set(issueIds.map(String).filter(id => /^\d+$/.test(id))));
-    if (!ids.length) return false;
+  function copyIssueText(text, notice, closeOverlays = false) {
+    if (!text) return false;
 
-    const text = ids.map(id => `#${id}`).join('\n');
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).catch(() => {});
     } else {
@@ -584,8 +586,22 @@
       input.remove();
     }
     if (closeOverlays) closeCopyOverlays();
-    showCopyNotice(ids.length === 1 ? text : `${ids.length}件のチケット番号`);
+    showCopyNotice(notice || text);
     return true;
+  }
+
+  function copyIssueNumbers(issueIds, closeOverlays = false) {
+    const ids = Array.from(new Set(issueIds.map(String).filter(id => /^\d+$/.test(id))));
+    if (!ids.length) return false;
+    const text = ids.map(id => `#${id}`).join('\n');
+    return copyIssueText(text, ids.length === 1 ? text : `${ids.length}件のチケット番号`, closeOverlays);
+  }
+
+  function copyIssueTitles(issueInfos, closeOverlays = false) {
+    const infos = issueInfos.filter(info => /^\d+$/.test(String(info?.issueId || '')));
+    if (!infos.length) return false;
+    const text = infos.map(info => `${String(info.subject || '').trim() || ''}${String(info.subject || '').trim() ? ' ' : ''}#${info.issueId}`).join('\n');
+    return copyIssueText(text, infos.length === 1 ? text : `${infos.length}件のチケットタイトル`, closeOverlays);
   }
 
   function copyIssueNumber(issueId, closeOverlays = false) {
@@ -924,7 +940,7 @@
     hint.className = 'zenmine-command-palette-hint';
     hint.textContent = unavailable
       ? '選択したチケットに共通して変更できるステータスがありません。'
-      : 'J / Kで移動、Cで番号をコピー、Enterで選択。A / S / D / Fでも選択できます。Escで閉じます。';
+      : 'J / Kで移動、cで番号、Cでタイトル #番号をコピー、Enterで選択。A / S / D / Fでも選択できます。Escで閉じます。';
     hint.style.cssText = unavailable
       ? 'display:block !important;margin:0 0 12px;color:#555;line-height:1.7'
       : 'margin:0 0 12px;color:#555';
@@ -1027,7 +1043,7 @@
 
     const hint = document.createElement('p');
     hint.className = 'zenmine-command-palette-hint';
-    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Sでステータス変更、Cで番号をコピー、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
+    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Sでステータス変更、cで番号、Cでタイトル #番号をコピー、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
     hint.style.cssText = 'margin:0 0 12px;color:#555';
     modal.appendChild(hint);
 
@@ -1166,7 +1182,11 @@
         return true;
       }
       if (event.key === 'c' || event.key === 'C') {
-        if (copyIssueNumber(selectedRecentIssueId())) event.preventDefault();
+        const issueId = selectedRecentIssueId();
+        const copied = event.key === 'C'
+          ? copyIssueTitles([{ issueId, subject: recentIssueSubject(issueId) }])
+          : copyIssueNumber(issueId);
+        if (copied) event.preventDefault();
         return true;
       }
       if (event.key === 'p' || event.key === 'P') {
@@ -1264,7 +1284,11 @@
       return true;
     }
     if (event.key === 'c' || event.key === 'C') {
-      if (copyIssueNumber(statusPalette.dataset.issueId)) event.preventDefault();
+      const targets = statusTargetIssueInfos();
+      const copied = event.key === 'C'
+        ? copyIssueTitles(targets)
+        : copyIssueNumbers(targets.map(target => target.issueId));
+      if (copied) event.preventDefault();
       return true;
     }
 
@@ -1394,15 +1418,20 @@
       }
 
       if (key === 'c' || key === 'C') {
-        const issueIds = statusTargetIssueInfos().map(target => target.issueId);
-        if (copyIssueNumbers(issueIds)) {
+        const targets = statusTargetIssueInfos();
+        const copied = key === 'C'
+          ? copyIssueTitles(targets)
+          : copyIssueNumbers(targets.map(target => target.issueId));
+        if (copied) {
           e.preventDefault();
           return;
         }
-        const btn = document.querySelector('a.icon.icon-copy, a.icon-copy, a[href$="/copy"]');
-        if (btn) {
-          e.preventDefault();
-          click(btn);
+        if (key === 'c') {
+          const btn = document.querySelector('a.icon.icon-copy, a.icon-copy, a[href$="/copy"]');
+          if (btn) {
+            e.preventDefault();
+            click(btn);
+          }
         }
         return;
       }

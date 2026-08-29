@@ -53,7 +53,8 @@ Restart your Redmine instance.
 | Key | Action |
 |-----|--------|
 | `e` | Edit issue (including description) |
-| `c` | Copy issue |
+| `c` | Copy issue number(s) only |
+| `C` (`Shift + c`) | Copy issue title(s) followed by `#number` |
 | `r` | Reply (issue detail page - auto-assigns to last updater) |
 | `Shift + Enter` | Toggle Edit/Preview tabs (when in textarea) |
 | `⌘/Option + Enter` | Submit form (works on all forms) |
