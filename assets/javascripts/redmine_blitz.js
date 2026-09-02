@@ -538,16 +538,29 @@
     notice.id = 'zenmine-copy-notice';
     notice.setAttribute('role', 'status');
     notice.style.cssText =
-      'position:fixed;top:118px;left:50%;z-index:100002;display:flex;min-height:48px;box-sizing:border-box;' +
-      'align-items:center;gap:12px;min-width:280px;padding:9px 14px 9px 12px;border:1px solid #d8eade;' +
+      'position:fixed;top:118px;left:50%;z-index:100002;display:flex;min-height:60px;box-sizing:border-box;' +
+      'align-items:center;gap:12px;min-width:280px;padding:14px 14px 14px 12px;border:1px solid #d8eade;' +
       'border-radius:12px;background:#f3faf5;box-shadow:0 2px 10px rgba(25,55,38,.06);' +
       'color:#2d4033;font-size:14px;font-weight:700;transform:translateX(-50%)';
-    const icon = document.createElement('span');
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     icon.setAttribute('aria-hidden', 'true');
-    icon.textContent = '✓';
-    icon.style.cssText =
-      'display:inline-flex;flex:0 0 30px;width:30px;height:30px;box-sizing:border-box;align-items:center;justify-content:center;' +
-      'border-radius:50%;background:#4fa967;color:#fff;font-size:20px;font-weight:800;line-height:1';
+    icon.setAttribute('viewBox', '0 0 48 48');
+    icon.setAttribute('width', '30');
+    icon.setAttribute('height', '30');
+    icon.style.cssText = 'display:block;flex:0 0 30px;width:30px;height:30px';
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', '24');
+    circle.setAttribute('cy', '24');
+    circle.setAttribute('r', '24');
+    circle.setAttribute('fill', '#65ad70');
+    const check = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    check.setAttribute('d', 'M13 24.5 20.5 32 35 15');
+    check.setAttribute('fill', 'none');
+    check.setAttribute('stroke', '#fff');
+    check.setAttribute('stroke-width', '5.5');
+    check.setAttribute('stroke-linecap', 'round');
+    check.setAttribute('stroke-linejoin', 'round');
+    icon.append(circle, check);
     const label = document.createElement('span');
     label.textContent = `${text} をコピーしました`;
     const close = document.createElement('button');
@@ -609,6 +622,9 @@
   }
 
   window.zenmineCopyIssueNumber = copyIssueNumber;
+  window.zenmineCopyIssueTitle = function(issueId, subject, closeOverlays = false) {
+    return copyIssueTitles([{ issueId, subject }], closeOverlays);
+  };
 
   function activatePaletteSelection(palette, selector) {
     const index = Number(palette?.dataset.selectedIndex);
@@ -990,7 +1006,7 @@
     footer.className = 'zenmine-command-palette-footer';
     footer.innerHTML = unavailable
       ? '<span><b>esc</b> 閉じる</span>'
-      : '<span><b>↑ K</b><b>↓ J</b></span><span><b>C</b> 番号をコピー</span><span><b>↵</b> 選択</span><span><b>esc</b> 閉じる</span>';
+      : '<span><b>↑ K</b><b>↓ J</b></span><span><b>c</b> 番号</span><span><b>Shift + c</b> タイトル #番号</span><span><b>↵</b> 選択</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     statusPalette.appendChild(modal);
     document.body.appendChild(statusPalette);
@@ -1116,7 +1132,7 @@
     modal.appendChild(table);
     const footer = document.createElement('div');
     footer.className = 'zenmine-command-palette-footer';
-    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>S</b> ステータス</span><span><b>C</b> 番号をコピー</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
+    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>S</b> ステータス</span><span><b>c</b> 番号</span><span><b>C</b> タイトル #番号</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     filter.addEventListener('input', () => {
       const terms = filter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -1182,9 +1198,12 @@
         return true;
       }
       if (event.key === 'c' || event.key === 'C') {
-        const issueId = selectedRecentIssueId();
-        const copied = event.key === 'C'
-          ? copyIssueTitles([{ issueId, subject: recentIssueSubject(issueId) }])
+        const recentRow = selectedRecentIssueRow();
+        const issueId = recentRow?.dataset.issueId;
+        const subject = recentRow?.querySelector('.zenmine-command-palette-issue-subject')?.textContent.trim() || recentIssueSubject(issueId);
+        const titleCopy = event.key === 'C' || (event.shiftKey && event.key.toLowerCase() === 'c');
+        const copied = titleCopy
+          ? copyIssueTitles([{ issueId, subject }])
           : copyIssueNumber(issueId);
         if (copied) event.preventDefault();
         return true;
@@ -1285,7 +1304,8 @@
     }
     if (event.key === 'c' || event.key === 'C') {
       const targets = statusTargetIssueInfos();
-      const copied = event.key === 'C'
+      const titleCopy = event.key === 'C' || (event.shiftKey && event.key.toLowerCase() === 'c');
+      const copied = titleCopy
         ? copyIssueTitles(targets)
         : copyIssueNumbers(targets.map(target => target.issueId));
       if (copied) event.preventDefault();
@@ -1419,7 +1439,8 @@
 
       if (key === 'c' || key === 'C') {
         const targets = statusTargetIssueInfos();
-        const copied = key === 'C'
+        const titleCopy = key === 'C' || (e.shiftKey && key.toLowerCase() === 'c');
+        const copied = titleCopy
           ? copyIssueTitles(targets)
           : copyIssueNumbers(targets.map(target => target.issueId));
         if (copied) {
