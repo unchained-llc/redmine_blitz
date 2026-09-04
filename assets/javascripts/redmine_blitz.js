@@ -313,6 +313,8 @@
         newIssue: '新しいチケット',
         search: '検索',
         projectJump: 'プロジェクトジャンプ',
+        titleFilter: 'フィルタにフォーカス（Enterで解除）',
+        selectAll: '表示中のチケットをすべて選択',
         issueList: 'チケット一覧',
         activity: 'アクティビティ',
         wiki: 'Wiki',
@@ -356,6 +358,8 @@
         newIssue: 'Create new issue',
         search: 'Search',
         projectJump: 'Project jump',
+        titleFilter: 'Focus title filter (Enter to blur)',
+        selectAll: 'Select all visible issues',
         issueList: 'Go to issues list',
         activity: 'Go to activity',
         wiki: 'Go to Wiki',
@@ -399,6 +403,8 @@
         newIssue: 'Créer une nouvelle demande',
         search: 'Rechercher',
         projectJump: 'Saut de projet',
+        titleFilter: 'Focusser le filtre de titre (Entrée pour quitter)',
+        selectAll: 'Sélectionner toutes les demandes visibles',
         issueList: 'Liste des demandes',
         activity: 'Activité',
         wiki: 'Wiki',
@@ -449,6 +455,8 @@
         <section class="zenmine-shortcut-card">
           <h3>${t.projectGroup}</h3>
           <div class="zenmine-shortcut-row"><kbd>p</kbd><span>${t.projectJump}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>f</kbd><span>${t.titleFilter}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>A</kbd><span>${t.selectAll}</span></div>
           <div class="zenmine-shortcut-row"><kbd>i</kbd><span>${t.issueList}</span></div>
           <div class="zenmine-shortcut-row"><kbd>a</kbd><span>${t.activity}</span></div>
           <div class="zenmine-shortcut-row"><kbd>w</kbd><span>${t.wiki}</span></div>
@@ -1377,6 +1385,24 @@
     return true;
   }
 
+  function focusTitleFilter() {
+    const input = document.querySelector('.zenmine-home-issue-title-filter input, .zenmine-issue-title-filter input');
+    if (!input) return false;
+    input.focus();
+    input.select?.();
+    return true;
+  }
+
+  function selectAllIssues() {
+    const rows = getRows('issue');
+    if (!rows.length) return false;
+    rows.forEach(row => {
+      const checkbox = row.querySelector('input[type="checkbox"]');
+      if (checkbox && !checkbox.checked) checkbox.click();
+    });
+    return true;
+  }
+
   function openProjectJump(toggle = false) {
     const pj = document.getElementById('project-jump');
     if (!pj) return false;
@@ -1446,7 +1472,13 @@
         e.target.blur();
         return;
       }
-      if (isTyping(e.target)) return;
+      if (isTyping(e.target)) {
+        if (key === 'Enter' && e.target.matches('.zenmine-home-issue-title-filter input, .zenmine-issue-title-filter input')) {
+          e.preventDefault();
+          e.target.blur();
+        }
+        return;
+      }
 
       if (key === 'o' || key === 'O') {
         if (openRecentPalette()) e.preventDefault();
@@ -1644,6 +1676,22 @@
         if (!openProjectJump(true)) return;
         e.preventDefault();
         e.stopImmediatePropagation();
+        return;
+      }
+
+      if (key === 'f' || key === 'F') {
+        if (focusTitleFilter()) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
+        return;
+      }
+
+      if (key === 'A') {
+        if (selectAllIssues()) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+        }
         return;
       }
 

@@ -40,6 +40,7 @@ Restart your Redmine instance.
 | `l` | Open / close sidebar |
 | `/` | Focus search field |
 | `p` | Project jump |
+| `f` | Focus title filter (press `Enter` to blur) |
 
 ### Scrolling
 
@@ -68,6 +69,7 @@ Restart your Redmine instance.
 | `j` | Move to next row |
 | `k` | Move to previous row |
 | `x` | Toggle issue selection |
+| `A` (`Shift + a`) | Select all visible issues |
 | `s` | Change status of the cursor issue, or selected issues, using Redmine's workflow actions |
 | `Space` | Open / close Quick Look preview |
 | `Enter` | Open issue (bulk edit if 2+ checked) |
