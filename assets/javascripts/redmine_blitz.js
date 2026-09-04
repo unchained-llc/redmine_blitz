@@ -142,6 +142,15 @@
     });
 
     window.doReplyAction = doReply;
+
+    if (isIssueDetailPage()) {
+      try {
+        if (sessionStorage.getItem('zenmine-open-reply') === '1') {
+          sessionStorage.removeItem('zenmine-open-reply');
+          setTimeout(doReply, 0);
+        }
+      } catch (_error) {}
+    }
   }
 
   $(document).ready(function() {
