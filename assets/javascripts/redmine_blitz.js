@@ -159,6 +159,13 @@
     const rows = getRows('issue');
     if (!rows.length) return;
 
+    const cursorRow = rows[issueIndex];
+    if (cursorRow && !cursorRow.querySelector('input[type="checkbox"]')?.checked) {
+      const cursorLink = cursorRow.querySelector('a[href^="/issues/"]');
+      if (cursorLink) location.href = cursorLink.href;
+      return;
+    }
+
     const checkedIds = rows
       .map(row => {
         const cb = row.querySelector('input[type="checkbox"]');
@@ -722,11 +729,13 @@
   }
 
   function statusTargetIssueRows() {
+    const rows = getRows('issue');
+    const currentRow = rows[issueIndex];
+    if (currentRow && !currentRow.querySelector('input[type="checkbox"]')?.checked) return [currentRow];
+
     const checkedRows = selectedIssueRows();
     if (checkedRows.length) return checkedRows;
 
-    const rows = getRows('issue');
-    const currentRow = rows[issueIndex];
     return currentRow ? [currentRow] : [];
   }
 
@@ -757,6 +766,17 @@
   function statusTargetIssueInfo() {
     const targets = statusTargetIssueInfos();
     return targets.length === 1 ? targets[0] : null;
+  }
+
+  function copyTargetIssueInfos() {
+    const rows = getRows('issue');
+    const cursorRow = rows[issueIndex];
+    if (cursorRow && !cursorRow.querySelector('input[type="checkbox"]')?.checked) {
+      const link = cursorRow.querySelector('td.subject a') || cursorRow.querySelector('a[href*="/issues/"]');
+      const issueId = link?.href.match(/\/issues\/(\d+)/)?.[1];
+      return issueId ? [{ issueId, subject: link.textContent.trim(), badge: cursorRow.querySelector('td.id > a, td.id a') }] : [];
+    }
+    return statusTargetIssueInfos();
   }
 
   function nativeStatusActions(menu) {
@@ -1323,12 +1343,12 @@
       return true;
     }
     if (event.key === 'M') {
-      const copied = copyIssueMarkedTitles(statusTargetIssueInfos());
+      const copied = copyIssueMarkedTitles(copyTargetIssueInfos());
       if (copied) event.preventDefault();
       return true;
     }
     if (event.key === 'c' || event.key === 'C') {
-      const targets = statusTargetIssueInfos();
+      const targets = copyTargetIssueInfos();
       const titleCopy = event.key === 'C' || (event.shiftKey && event.key.toLowerCase() === 'c');
       const copied = titleCopy
         ? copyIssueTitles(targets)
@@ -1463,7 +1483,7 @@
       }
 
       if (key === 'M') {
-        const copied = copyIssueMarkedTitles(statusTargetIssueInfos());
+        const copied = copyIssueMarkedTitles(copyTargetIssueInfos());
         if (copied) {
           e.preventDefault();
           return;
@@ -1471,7 +1491,7 @@
       }
 
       if (key === 'c' || key === 'C') {
-        const targets = statusTargetIssueInfos();
+        const targets = copyTargetIssueInfos();
         const titleCopy = key === 'C' || (e.shiftKey && key.toLowerCase() === 'c');
         const copied = titleCopy
           ? copyIssueTitles(targets)
