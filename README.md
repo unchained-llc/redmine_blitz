@@ -90,7 +90,7 @@ Restart your Redmine instance.
 | Key | Action |
 |-----|--------|
 | `?` | Show keyboard shortcuts help |
-| `Esc` | Blur input field (when focused) |
+| `Esc` | Clear filter / search input (when focused); otherwise blur input |
 
 ## Usage Tips
 

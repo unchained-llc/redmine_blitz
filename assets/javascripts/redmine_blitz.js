@@ -344,7 +344,7 @@
         toggle: 'チケット選択 ON / OFF',
         open: 'チェック1件 → 開く<br>チェック2件以上 → 一括編集',
         newTab: 'タブで開く',
-        escape: '選択解除（2回で全解除）<br>入力中はフォーカス解除',
+        escape: '選択解除（2回で全解除）<br>フィルタ / 検索中は入力クリア',
         help: 'ヘルプ表示'
       },
       en: {
@@ -389,7 +389,7 @@
         toggle: 'Toggle issue selection',
         open: '1 checked → open<br>2+ checked → bulk edit',
         newTab: 'Open in new tab',
-        escape: 'Clear selection (twice to uncheck all)<br>Blur input field when focused',
+        escape: 'Clear selection (twice to uncheck all)<br>Clear filter / search input when focused',
         help: 'Show help'
       },
       fr: {
@@ -434,7 +434,7 @@
         toggle: 'Sélectionner/désélectionner (x)',
         open: '1 cochée → ouvrir<br>2+ cochées → édition en masse',
         newTab: 'Ouvrir dans un nouvel onglet',
-        escape: 'Effacer la sélection (2× pour tout décocher)<br>Perdre le focus en saisie',
+        escape: 'Effacer la sélection (2× pour tout décocher)<br>Effacer le filtre / la recherche en saisie',
         help: 'Afficher l\'aide'
       }
     };
@@ -1211,6 +1211,13 @@
 
   function handleStatusPaletteKey(event) {
     if (recentPalette && !statusPalette) {
+      if (event.key === 'Escape' && isTyping(event.target) && event.target.matches('#recent-palette-overlay input[type="search"]')) {
+        event.preventDefault();
+        event.target.value = '';
+        event.target.dispatchEvent(new Event('input', { bubbles: true }));
+        event.target.blur();
+        return true;
+      }
       if (event.key === 'Escape') {
         // QuickLook closes before the recent-issues palette in the modal stack.
         if (document.body.classList.contains('zenmine-quick-look-open') && !event.defaultPrevented) return false;
@@ -1477,8 +1484,16 @@
       if (handleStatusPaletteKey(e)) return;
 
       if (key === 'Escape' && isTyping(e.target)) {
-        e.preventDefault();
-        e.target.blur();
+        const clearableInput = e.target.matches('#quick-search #q, .zenmine-home-issue-title-filter input, .zenmine-issue-title-filter input');
+        if (clearableInput) {
+          e.preventDefault();
+          e.target.value = '';
+          e.target.dispatchEvent(new Event('input', { bubbles: true }));
+          e.target.blur();
+        } else {
+          e.preventDefault();
+          e.target.blur();
+        }
         return;
       }
       if (isTyping(e.target)) {
