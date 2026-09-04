@@ -1152,11 +1152,6 @@
         const text = row.textContent.toLowerCase();
         row.hidden = terms.length > 0 && !terms.every(term => text.includes(term));
       });
-      const visibleRows = Array.from(table.querySelectorAll('[data-recent-index]'))
-        .filter(row => !row.hidden);
-      visibleRows.forEach((row, visibleIndex) => {
-        row.querySelector('td:first-child b').textContent = String(visibleIndex + 1);
-      });
       setPaletteSelection(recentPalette, '[data-recent-index]', -1);
     });
 
@@ -1271,10 +1266,8 @@
         return true;
       }
       const recentIndex = Number(event.key) - 1;
-      const visibleRows = Array.from(recentPalette.querySelectorAll('[data-recent-index]'))
-        .filter(row => !row.hidden);
-      const recentRow = visibleRows[recentIndex];
-      if (recentIndex >= 0 && recentRow) {
+      const recentRow = recentPalette.querySelector('[data-recent-index="' + recentIndex + '"]');
+      if (recentIndex >= 0 && recentRow && !recentRow.hidden) {
         recentRow.click();
         event.preventDefault();
         return true;
