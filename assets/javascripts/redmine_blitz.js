@@ -318,6 +318,7 @@
         edit: '編集 + 説明編集',
         copyNumber: 'チケット番号をコピー',
         copyTitle: 'タイトル #番号をコピー',
+        copyMarkedTitle: '[#番号] タイトルをコピー',
         preview: 'プレビュー切替',
         submit: '送信（フォーム）',
         navigation: '選択移動（チケット / 検索結果）<br>チケット詳細ではスクロール',
@@ -360,6 +361,7 @@
         edit: 'Edit issue + description',
         copyNumber: 'Copy issue number(s) only',
         copyTitle: 'Copy title followed by #number',
+        copyMarkedTitle: 'Copy title prefixed with [#number]',
         preview: 'Toggle Edit/Preview',
         submit: 'Submit form',
         navigation: 'Navigate (issues / search results)<br>Scroll on issue detail pages',
@@ -402,6 +404,7 @@
         edit: 'Éditer + description',
         copyNumber: 'Copier uniquement le(s) numéro(s)',
         copyTitle: 'Copier le titre suivi du #numéro',
+        copyMarkedTitle: 'Copier le titre préfixé par [#numéro]',
         preview: 'Basculer Édition/Aperçu',
         submit: 'Soumettre le formulaire',
         navigation: 'Naviguer (demandes / résultats)<br>Défiler sur les pages de détail',
@@ -454,6 +457,7 @@
           <div class="zenmine-shortcut-row"><kbd>e</kbd><span>${t.edit}</span></div>
           <div class="zenmine-shortcut-row"><kbd>c</kbd><span>${t.copyNumber}</span></div>
           <div class="zenmine-shortcut-row"><kbd>C</kbd><span>${t.copyTitle}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>M</kbd><span>${t.copyMarkedTitle}</span></div>
           <div class="zenmine-shortcut-row"><kbd>Shift + Enter</kbd><span>${t.preview}</span></div>
           <div class="zenmine-shortcut-row"><kbd>⌘ / Option + Enter</kbd><span>${t.submit}</span></div>
           <div class="zenmine-shortcut-row"><kbd>ZZ</kbd><span>${t.submit}</span></div>
@@ -617,11 +621,19 @@
     return copyIssueText(text, infos.length === 1 ? text : `${infos.length}件のチケットタイトル`, closeOverlays);
   }
 
+  function copyIssueMarkedTitle(issueId, subject, closeOverlays = false) {
+    const id = String(issueId || '');
+    if (!/^\d+$/.test(id)) return false;
+    const title = String(subject || '').trim();
+    return copyIssueText(`[#${id}]${title ? ` ${title}` : ''}`, `[#${id}]${title ? ` ${title}` : ''}`, closeOverlays);
+  }
+
   function copyIssueNumber(issueId, closeOverlays = false) {
     return copyIssueNumbers([issueId], closeOverlays);
   }
 
   window.zenmineCopyIssueNumber = copyIssueNumber;
+  window.zenmineCopyIssueMarkedTitle = copyIssueMarkedTitle;
   window.zenmineCopyIssueTitle = function(issueId, subject, closeOverlays = false) {
     return copyIssueTitles([{ issueId, subject }], closeOverlays);
   };
@@ -1059,7 +1071,7 @@
 
     const hint = document.createElement('p');
     hint.className = 'zenmine-command-palette-hint';
-    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Sでステータス変更、cで番号、Cでタイトル #番号をコピー、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
+    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Sでステータス変更、cで番号、Cでタイトル #番号、Mで [#番号] タイトルをコピー、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
     hint.style.cssText = 'margin:0 0 12px;color:#555';
     modal.appendChild(hint);
 
@@ -1132,7 +1144,7 @@
     modal.appendChild(table);
     const footer = document.createElement('div');
     footer.className = 'zenmine-command-palette-footer';
-    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>S</b> ステータス</span><span><b>c</b> 番号</span><span><b>C</b> タイトル #番号</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
+    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>S</b> ステータス</span><span><b>c</b> 番号</span><span><b>C</b> タイトル #番号</span><span><b>M</b> [#番号] タイトル</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     filter.addEventListener('input', () => {
       const terms = filter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -1195,6 +1207,14 @@
         const issueId = selectedRecentIssueId();
         const issueBadge = selectedRecentIssueRow()?.querySelector('.zenmine-command-palette-issue-badge');
         if (openStatusPalette(0, issueId, undefined, issueBadge)) event.preventDefault();
+        return true;
+      }
+      if (event.key === 'M') {
+        const recentRow = selectedRecentIssueRow();
+        const issueId = recentRow?.dataset.issueId;
+        const subject = recentRow?.querySelector('.zenmine-command-palette-issue-subject')?.textContent.trim() || recentIssueSubject(issueId);
+        const copied = copyIssueMarkedTitle(issueId, subject);
+        if (copied) event.preventDefault();
         return true;
       }
       if (event.key === 'c' || event.key === 'C') {
@@ -1300,6 +1320,12 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       closeStatusPalette();
+      return true;
+    }
+    if (event.key === 'M') {
+      const target = statusTargetIssueInfo();
+      const copied = copyIssueMarkedTitle(target?.issueId, target?.subject);
+      if (copied) event.preventDefault();
       return true;
     }
     if (event.key === 'c' || event.key === 'C') {
@@ -1435,6 +1461,15 @@
         e.preventDefault();
         goUpOneLevel();
         return;
+      }
+
+      if (key === 'M') {
+        const target = statusTargetIssueInfo();
+        const copied = copyIssueMarkedTitle(target?.issueId, target?.subject);
+        if (copied) {
+          e.preventDefault();
+          return;
+        }
       }
 
       if (key === 'c' || key === 'C') {
