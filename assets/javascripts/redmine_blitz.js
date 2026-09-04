@@ -621,11 +621,18 @@
     return copyIssueText(text, infos.length === 1 ? text : `${infos.length}件のチケットタイトル`, closeOverlays);
   }
 
+  function copyIssueMarkedTitles(issueInfos, closeOverlays = false) {
+    const infos = issueInfos.filter(info => /^\d+$/.test(String(info?.issueId || '')));
+    if (!infos.length) return false;
+    const text = infos.map(info => {
+      const subject = String(info.subject || '').trim();
+      return `[#${info.issueId}]${subject ? ` ${subject}` : ''}`;
+    }).join('\n');
+    return copyIssueText(text, infos.length === 1 ? text : `${infos.length}件のチケットタイトル`, closeOverlays);
+  }
+
   function copyIssueMarkedTitle(issueId, subject, closeOverlays = false) {
-    const id = String(issueId || '');
-    if (!/^\d+$/.test(id)) return false;
-    const title = String(subject || '').trim();
-    return copyIssueText(`[#${id}]${title ? ` ${title}` : ''}`, `[#${id}]${title ? ` ${title}` : ''}`, closeOverlays);
+    return copyIssueMarkedTitles([{ issueId, subject }], closeOverlays);
   }
 
   function copyIssueNumber(issueId, closeOverlays = false) {
@@ -1316,8 +1323,7 @@
       return true;
     }
     if (event.key === 'M') {
-      const target = statusTargetIssueInfo();
-      const copied = copyIssueMarkedTitle(target?.issueId, target?.subject);
+      const copied = copyIssueMarkedTitles(statusTargetIssueInfos());
       if (copied) event.preventDefault();
       return true;
     }
@@ -1457,8 +1463,7 @@
       }
 
       if (key === 'M') {
-        const target = statusTargetIssueInfo();
-        const copied = copyIssueMarkedTitle(target?.issueId, target?.subject);
+        const copied = copyIssueMarkedTitles(statusTargetIssueInfos());
         if (copied) {
           e.preventDefault();
           return;
