@@ -456,7 +456,6 @@
           <h3>${t.projectGroup}</h3>
           <div class="zenmine-shortcut-row"><kbd>p</kbd><span>${t.projectJump}</span></div>
           <div class="zenmine-shortcut-row"><kbd>f</kbd><span>${t.titleFilter}</span></div>
-          <div class="zenmine-shortcut-row"><kbd>A</kbd><span>${t.selectAll}</span></div>
           <div class="zenmine-shortcut-row"><kbd>i</kbd><span>${t.issueList}</span></div>
           <div class="zenmine-shortcut-row"><kbd>a</kbd><span>${t.activity}</span></div>
           <div class="zenmine-shortcut-row"><kbd>w</kbd><span>${t.wiki}</span></div>
@@ -470,9 +469,6 @@
           <div class="zenmine-shortcut-row"><kbd>s → a / s / d / f</kbd><span>${t.status}</span></div>
           <div class="zenmine-shortcut-row"><kbd>o → 1〜9</kbd><span>${t.recent}</span></div>
           <div class="zenmine-shortcut-row"><kbd>e</kbd><span>${t.edit}</span></div>
-          <div class="zenmine-shortcut-row"><kbd>c</kbd><span>${t.copyNumber}</span></div>
-          <div class="zenmine-shortcut-row"><kbd>C</kbd><span>${t.copyTitle}</span></div>
-          <div class="zenmine-shortcut-row"><kbd>M</kbd><span>${t.copyMarkedTitle}</span></div>
           <div class="zenmine-shortcut-row"><kbd>Shift + Enter</kbd><span>${t.preview}</span></div>
           <div class="zenmine-shortcut-row"><kbd>⌘ / Option + Enter</kbd><span>${t.submit}</span></div>
           <div class="zenmine-shortcut-row"><kbd>ZZ</kbd><span>${t.submit}</span></div>
@@ -480,6 +476,10 @@
         <section class="zenmine-shortcut-card">
           <h3>${t.selectionGroup}</h3>
           <div class="zenmine-shortcut-row"><kbd>j / k</kbd><span>${t.navigation}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>A</kbd><span>${t.selectAll}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>c</kbd><span>${t.copyNumber}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>C</kbd><span>${t.copyTitle}</span></div>
+          <div class="zenmine-shortcut-row"><kbd>M</kbd><span>${t.copyMarkedTitle}</span></div>
           <div class="zenmine-shortcut-row"><kbd>Space</kbd><span>${t.quickLook}</span></div>
           <div class="zenmine-shortcut-row"><kbd>x</kbd><span>${t.toggle}</span></div>
           <div class="zenmine-shortcut-row"><kbd>Enter</kbd><span>${t.open}</span></div>
