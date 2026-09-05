@@ -56,7 +56,7 @@ Restart your Redmine instance.
 | `e` | Edit issue (including description) |
 | `c` | Copy issue number(s) only |
 | `C` (`Shift + c`) | Copy issue title(s) followed by `#number` |
-| `r` | Reply (issue detail page - auto-assigns to last updater) |
+| `r` | Reply (single issue from the issue list, inline search, or recently viewed issues; auto-assigns to last updater) |
 | `Shift + Enter` | Toggle Edit/Preview tabs (when in textarea) |
 | `⌘/Option + Enter` | Submit form (works on all forms) |
 | `ZZ` | Submit form (Vim-style) |
@@ -74,6 +74,7 @@ Restart your Redmine instance.
 | `Space` | Open / close Quick Look preview |
 | `Enter` | Open issue (bulk edit if 2+ checked) |
 | `t` | Open issue in new tab |
+| `r` | Reply to the cursor issue first, or the single checked issue (auto-assigns to last updater) |
 | `Esc` | Clear selection (press twice to uncheck all) |
 
 ### Search Results

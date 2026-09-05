@@ -159,6 +159,29 @@
     }
   });
 
+  function openReplyForIssue(issueId) {
+    if (!/^\d+$/.test(String(issueId || ''))) return false;
+    try { sessionStorage.setItem('zenmine-open-reply', '1'); } catch (_error) {}
+    window.location.href = `/issues/${issueId}`;
+    return true;
+  }
+
+  window.zenmineOpenReply = openReplyForIssue;
+
+  function selectedIssueReplyTarget() {
+    const rows = getRows('issue');
+    const cursorRow = rows[issueIndex];
+    const cursorLink = cursorRow?.querySelector('a[href*="/issues/"]');
+    const cursorIssueId = cursorLink?.href.match(/\/issues\/(\d+)(?:\/|$)/)?.[1];
+    if (cursorIssueId) return { issueId: cursorIssueId, link: cursorLink };
+
+    const selectedRows = selectedIssueRows();
+    if (selectedRows.length !== 1) return null;
+    const link = selectedRows[0].querySelector('a[href*="/issues/"]');
+    const issueId = link?.href.match(/\/issues\/(\d+)(?:\/|$)/)?.[1];
+    return issueId ? { issueId, link } : null;
+  }
+
   function currentIssueLink() {
     const rows = getRows('issue');
     return issueIndex >= 0 ? rows[issueIndex]?.querySelector('a[href^="/issues/"]') : null;
@@ -330,7 +353,7 @@
         sidebar: 'サイドバーを開く / 閉じる',
         scrollTop: '最上へスクロール',
         scrollBottom: '最下へスクロール',
-        reply: '返信（チケット詳細ページ）',
+        reply: '返信（チケット選択 / インライン検索 / 最近見たチケット）<br>単一チケットのみ',
         status: 'ステータスを変更（カーソルのチケット / xで選択したチケット）<br>複数選択時は共通候補のみ',
         recent: '最近見たチケットを開く',
         edit: '編集 + 説明編集',
@@ -375,7 +398,7 @@
         sidebar: 'Open / close sidebar',
         scrollTop: 'Scroll to top',
         scrollBottom: 'Scroll to bottom',
-        reply: 'Reply (issue detail page)',
+        reply: 'Reply (issue selection / inline search / recently viewed issues)<br>Single issue only',
         status: 'Change status (cursor issue / x-selected issues)<br>Only common options appear for multiple issues',
         recent: 'Open recently viewed issues',
         edit: 'Edit issue + description',
@@ -420,7 +443,7 @@
         sidebar: 'Ouvrir / fermer la barre latérale',
         scrollTop: 'Défiler vers le haut',
         scrollBottom: 'Défiler vers le bas',
-        reply: 'Répondre (page détail)',
+        reply: 'Répondre (sélection / recherche inline / demandes récentes)<br>Une seule demande',
         status: 'Changer le statut (demande sous le curseur / sélection)<br>Options communes uniquement en sélection multiple',
         recent: 'Ouvrir les demandes récemment consultées',
         edit: 'Éditer + description',
@@ -1115,7 +1138,7 @@
 
     const hint = document.createElement('p');
     hint.className = 'zenmine-command-palette-hint';
-    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Sでステータス変更、cで番号、Cでタイトル #番号、Mで [#番号] タイトルをコピー、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
+    hint.textContent = 'J / Kで移動、Spaceでプレビュー、Rで返信、Sでステータス変更、cで番号、Cでタイトル #番号、Mで [#番号] タイトルをコピー、Enterで開きます。1〜9でも選択できます。/で候補を絞り込みます。Escで閉じます。';
     hint.style.cssText = 'margin:0 0 12px;color:#555';
     modal.appendChild(hint);
 
@@ -1188,7 +1211,7 @@
     modal.appendChild(table);
     const footer = document.createElement('div');
     footer.className = 'zenmine-command-palette-footer';
-    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>S</b> ステータス</span><span><b>c</b> 番号</span><span><b>C</b> タイトル #番号</span><span><b>M</b> [#番号] タイトル</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
+    footer.innerHTML = '<span><b>↑ K</b><b>↓ J</b></span><span><b>1–9</b> 選択</span><span><b>SPACE</b> プレビュー</span><span><b>R</b> 返信</span><span><b>S</b> ステータス</span><span><b>c</b> 番号</span><span><b>C</b> タイトル #番号</span><span><b>M</b> [#番号] タイトル</span><span><b>/</b> 検索</span><span><b>↵</b> 開く</span><span><b>T</b> タブで開く</span><span><b>esc</b> 閉じる</span>';
     modal.appendChild(footer);
     filter.addEventListener('input', () => {
       const terms = filter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -1248,6 +1271,11 @@
           }
         }
         return false;
+      }
+      if (event.key === 'r' || event.key === 'R') {
+        const issueId = selectedRecentIssueId();
+        if (openReplyForIssue(issueId)) event.preventDefault();
+        return true;
       }
       if (event.key === 's' || event.key === 'S') {
         const issueId = selectedRecentIssueId();
@@ -1634,6 +1662,11 @@
       }
 
       if (isIssueList()) {
+        if (key === 'r' || key === 'R') {
+          const target = selectedIssueReplyTarget();
+          if (target && openReplyForIssue(target.issueId)) e.preventDefault();
+          return;
+        }
         if (key === 'j' || key === 'k') {
           e.preventDefault();
           issueIndex = moveRow('issue', issueIndex, key === 'j' ? 1 : -1);
